@@ -15,6 +15,7 @@ import CurrentYields from './components/dashboard/CurrentYields';
 import ChatBot from './components/ChatBot';
 import Marketplace from './components/Marketplace';
 import LeaseMarketplace from './pages/LeaseMarketPlace';
+import SupplyChain from './components/SupplyChain';
 
 function App() {
   return (
@@ -37,6 +38,11 @@ function App() {
           <Route path="/leasemarket" element={
             <ProtectedRoute>
               <LeaseMarketplace />
+            </ProtectedRoute>
+          } />
+          <Route path="/supply-chain" element={
+            <ProtectedRoute>
+              <SupplyChain />
             </ProtectedRoute>
           } />
           <Route path="/yield/*" element={
