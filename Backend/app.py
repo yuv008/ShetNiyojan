@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
+import json
 from db import users_collection, yields_collection,activities_collection
 from groq import Groq
 from decouple import config
@@ -307,14 +308,7 @@ def delete_yield(current_user, yield_id):
 
 #activities
 
-from flask import Flask, request, jsonify
-from datetime import datetime
-from bson import ObjectId
-from db import (
-    users_collection,
-    yields_collection,
-    activities_collection
-)
+
 
 @app.route('/api/create_activity', methods=['POST'])
 def create_activity():
@@ -360,7 +354,7 @@ def create_activity():
     activity = {
         'userId': user['_id'],
         'yieldId': yield_obj['_id'],
-        'activity_type': activity_type,
+        'activity_type': data['activity_type'],
         'activity_name': data['activity_name'],
         'summary': data['summary'],
         'amount': data['amount'],
@@ -431,73 +425,194 @@ def get_activities():
 
     return jsonify({"activities": activities}), 200
 
-# ------------------ Chatbot API ------------------
-@app.route('/api/chat', methods=['POST'])
-def chatbot():
+import joblib
+#  Get Groq API key from environment variables
+GROQ_API_KEY = config('GROQ_API_KEY')
+
+# Load the model
+try:
+    model = joblib.load("./models/adaboost_model_soil.pkl")
+    print("Model loaded successfully")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    model = None
+
+# Function to get insights from Groq
+def get_groq_insights(soil_params, soil_type, location, land_area, model_name="llama3-70b-8192"):
+    # Create a prompt for Groq
+    prompt = f"""
+    As an agricultural expert, provide detailed insights and recommendations based on the following soil analysis:
+    
+    Location: {location}
+    Land Area: {land_area} hectares
+    Soil Type: {soil_type}
+    
+    Soil Parameters:
+    - Nitrogen: {soil_params['N']} kg/ha
+    - Phosphorus: {soil_params['P']} kg/ha
+    - Potassium: {soil_params['K']} kg/ha
+    - Temperature: {soil_params['temperature']}°C
+    - Humidity: {soil_params['humidity']}%
+    - pH: {soil_params['ph']}
+    - Rainfall: {soil_params['rainfall']} mm/month
+    
+    Please provide:
+    1. Top 3 most suitable crops with brief explanations
+    2. Estimated yield potential for each recommended crop
+    3. Specific farming recommendations (planting time, irrigation needs, fertilizer suggestions)
+    4. Any soil health concerns and improvement strategies
+    5. Sustainable farming practices that would work well with this soil profile
+    
+    Format your response as JSON with the following structure:
+    {{
+        "top_crops": [
+            {{"name": "Crop1", "suitability": "95%", "water_requirement": "High/Medium/Low", "growth_period": "X-Y months"}},
+            {{"name": "Crop2", "suitability": "87%", "water_requirement": "High/Medium/Low", "growth_period": "X-Y months"}},
+            {{"name": "Crop3", "suitability": "79%", "water_requirement": "High/Medium/Low", "growth_period": "X-Y months"}}
+        ],
+        "best_crop": {{
+            "name": "Crop1",
+            "confidence": "95%",
+            "environmental_suitability": "Excellent/Good/Moderate",
+            "estimated_yield": "X-Y tons/hectare",
+            "recommendation": "Brief planting and care recommendation"
+        }},
+        "soil_health": {{
+            "status": "Excellent/Good/Needs improvement",
+            "concerns": ["Concern1", "Concern2"],
+            "improvement_strategies": ["Strategy1", "Strategy2", "Strategy3"]
+        }},
+        "sustainable_practices": ["Practice1", "Practice2", "Practice3"]
+    }}
+    """
+    
     try:
-        data = request.json
-        user_input = data.get('message', '')
-        model = data.get('model', 'llama-3.3-70b-versatile')
-        temperature = float(data.get('temperature', 0.7))
-        max_tokens = int(data.get('max_tokens', 400))
+        # Prepare the API request for Groq
+        url = "https://api.groq.com/openai/v1/chat/completions"
         
-        if not user_input:
-            return jsonify({'error': 'No message provided'}), 400
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
         
-        # Initialize Groq client with API key
-        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        
-        # Create the chat prompt with HTML formatting instructions and emphasis on brevity
-        prompt = f"""
-        As a helpful agricultural assistant, please respond to the following query: 
-        
-        {user_input}
-        
-        IMPORTANT INSTRUCTIONS:
-        1. Be VERY CONCISE - limit your response to 3-4 short paragraphs maximum
-        2. Focus only on the most relevant information
-        3. Use simple, direct language
-        4. Format using HTML for readability
-        
-        Use these HTML tags sparingly:
-        - <h3> for a single main heading
-        - <p> for paragraphs (keep them short)
-        - <ul> with <li> for key points (limit to 3-5 items max)
-        - <strong> for emphasis (use minimally)
-        
-        Do not include opening/closing HTML, body, or head tags - just the content HTML.
-        """
-        
-        # Make the chat completion request
-        chat_completion = client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a knowledgeable agricultural assistant. Provide BRIEF, CONCISE responses focused on farming practices. Format with minimal HTML for readability. Never exceed 400 tokens."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+        data = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": "You are an expert agricultural advisor with deep knowledge of soil science, crop selection, and sustainable farming practices."},
+                {"role": "user", "content": prompt}
             ],
-            temperature=temperature,
-            max_completion_tokens=max_tokens,
-            top_p=1,
-            stop=None,
-            stream=False
-        )
+            "response_format": {"type": "json_object"}
+        }
         
-        # Extract the response
-        response = chat_completion.choices[0].message.content.strip()
+        # Call Groq API
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
         
-        return jsonify({'response': response}), 200
-        
+        # Parse the response
+        response_data = response.json()
+        content = response_data["choices"][0]["message"]["content"]
+        insights = json.loads(content)
+        return insights, None
+    
     except Exception as e:
-        print(f"Error in chatbot API: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        error_message = f"Error getting insights: {str(e)}"
+        return None, error_message
+
+# Routes
+
+
+@app.route('/recommend_crop_predict', methods=['POST'])
+def predict():
+    if not model:
+        return jsonify({"error": "Model not loaded. Please check server logs."}), 500
+    
+    try:
+        # Get data from request
+        data = request.get_json()
+        
+        # Extract parameters
+        location = data.get('location', 'Unknown')
+        soil_type = data.get('soil_type', 'Unknown')
+        land_area = float(data.get('land_area', 1.0))
+        
+        # Soil parameters
+        soil_params = {
+            'N': float(data.get('nitrogen', 0)),
+            'P': float(data.get('phosphorus', 0)),
+            'K': float(data.get('potassium', 0)),
+            'temperature': float(data.get('temperature', 25)),
+            'humidity': float(data.get('humidity', 60)),
+            'ph': float(data.get('ph', 7.0)),
+            'rainfall': float(data.get('rainfall', 100))
+        }
+        
+        # Create features array for prediction
+        features = np.array([[
+            soil_params['N'], 
+            soil_params['P'], 
+            soil_params['K'],
+            soil_params['temperature'],
+            soil_params['humidity'],
+            soil_params['ph'],
+            soil_params['rainfall']
+        ]])
+        
+        # Make prediction with model
+        predicted_soil = model.predict(features)[0]
+        probabilities = model.predict_proba(features)
+        highest_prob = float(np.max(probabilities) * 100)
+        
+        # Get AI insights if Groq API key is available
+        model_name = data.get('model_name', 'llama3-70b-8192')
+        if GROQ_API_KEY:
+            insights, error = get_groq_insights(soil_params, soil_type, location, land_area, model_name)
+            if error:
+                return jsonify({
+                    "predicted_soil": predicted_soil,
+                    "confidence": highest_prob,
+                    "error": error
+                })
+        else:
+            insights = None
+        
+        # Prepare response
+        response = {
+            "predicted_soil": predicted_soil,
+            "confidence": highest_prob,
+            "insights": insights
+        }
+        
+        return jsonify(response)
+    
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/models', methods=['GET'])
+def get_models():
+    models = [
+        {
+            "id": "llama3-70b-8192",
+            "name": "Llama 3 70B",
+            "description": "Highest quality results, best for detailed agricultural insights"
+        },
+        {
+            "id": "llama3-8b-8192",
+            "name": "Llama 3 8B",
+            "description": "Good balance of quality and speed"
+        },
+        {
+            "id": "gemma-7b-it",
+            "name": "Gemma 7B",
+            "description": "Fast response times, good for basic recommendations"
+        },
+        {
+            "id": "mixtral-8x7b-32768",
+            "name": "Mixtral 8x7B",
+            "description": "Powerful model with strong reasoning capabilities"
+        }
+    ]
+    return jsonify(models)
 
 # ------------------ Run App ------------------
 if __name__ == '__main__':
