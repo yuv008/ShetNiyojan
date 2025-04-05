@@ -437,7 +437,7 @@ const YieldDetails = () => {
   }, []);
 
   // Process the transcribed text to identify activity details
-  const processTranscript = (text: string) => {
+  const processTranscript = async (text: string) => {
     console.log("Processing transcript:", text);
     
     // Skip processing if no text was captured
@@ -447,182 +447,141 @@ const YieldDetails = () => {
       return;
     }
     
-    // Convert text to lowercase for easier matching
-    const lowerText = text.toLowerCase();
+    setProcessingVoice(true);
     
-    // Create a template for recognized activity
-    let newActivity = {
-      type: "",
-      name: "",
-      expense: 0,
-      summary: text,
-      date: new Date().toLocaleString(),
-      details: {
+    try {
+      // Call Gemini API to format the speech data
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY.replace(/"/g, '');
+      console.log("Using API key (first few chars):", apiKey.substring(0, 5) + "...");
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `Analyze the following voice input for an agricultural activity and extract structured data in JSON format:
+                  
+                  Voice input: "${text}"
+                  
+                  Extract the following fields:
+                  - activity_type: One of [fertilizer, pesticide, financial, cultivation, sowing, irrigation, harvesting, other]
+                  - activity_name: A short descriptive name for the activity
+                  - summary: Brief summary of what was done
+                  - amount: Numerical amount spent (in INR)
+                  
+                  For fertilizer activities, also extract:
+                  - fertilizer_name: Name of the fertilizer used
+                  - quantity: Amount used with unit (e.g., "5 kg")
+                  
+                  For pesticide activities, also extract:
+                  - pesticide_name: Name of the pesticide used
+                  - quantity: Amount used with unit (e.g., "2 liters")
+                  
+                  For financial activities, also extract:
+                  - financial_category: Category of expense (e.g., labor, equipment, seeds)
+                  - payment_method: Method of payment (e.g., cash, card, UPI)
+                  
+                  Return ONLY valid JSON with no explanation text.`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            topK: 40,
+            topP: 0.95
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Gemini API error response:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        throw new Error(`Error connecting to Gemini API: ${response.statusText} (${response.status})`);
+      }
+      
+      const data = await response.json();
+      console.log("Gemini Response:", data);
+      
+      let formattedData;
+      try {
+        // Extract the JSON from Gemini's response
+        const jsonContent = data.candidates[0].content.parts[0].text;
+        
+        // Clean the JSON content by removing any markdown formatting
+        const cleanedJsonContent = jsonContent
+          .replace(/```json\n?/g, '') // Remove opening ```json markers
+          .replace(/```\n?/g, '')     // Remove closing ``` markers
+          .trim();                     // Trim any extra whitespace
+          
+        console.log("Cleaned JSON content:", cleanedJsonContent);
+        
+        // Parse the cleaned JSON
+        formattedData = JSON.parse(cleanedJsonContent);
+        console.log("Formatted data:", formattedData);
+      } catch (jsonError) {
+        console.error("Error parsing Gemini response:", jsonError);
+        toast({
+          title: "Error",
+          description: "Failed to parse voice input. Please try again or enter manually.",
+          variant: "destructive"
+        });
+        setProcessingVoice(false);
+        setRecording(false);
+        return;
+      }
+      
+      // Map the Gemini formatted data to our form structure
+      const formData = {
+        type: formattedData.activity_type ? 
+              formattedData.activity_type.charAt(0).toUpperCase() + formattedData.activity_type.slice(1) : '',
+        name: formattedData.activity_name || '',
+        expense: formattedData.amount ? formattedData.amount.toString() : '0',
+        summary: formattedData.summary || text, // Fallback to original transcript if no summary
+        isExpense: true,
         fertilizer: {
-          name: "",
-          quantity: ""
+          name: formattedData.fertilizer_name || '',
+          quantity: formattedData.quantity || '',
+          billImage: null
         },
         pesticide: {
-          name: "",
-          quantity: ""
+          name: formattedData.pesticide_name || '',
+          quantity: formattedData.quantity || '',
+          billImage: null
         },
         financial: {
-          category: "",
-          paymentMethod: ""
+          category: formattedData.financial_category || '',
+          paymentMethod: formattedData.payment_method || '',
+          receiptImage: null
         }
-      }
-    };
-    
-    // Try to identify activity type
-    for (const type of ActivityTypes) {
-      if (lowerText.includes(type.toLowerCase())) {
-        newActivity.type = type;
-        break;
-      }
+      };
+      
+      // Set the form data and show the form
+      setFormDataFromSpeech(formData);
+      setShowActivityForm(true);
+      
+    } catch (error) {
+      console.error("Error processing voice input with Gemini:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process voice input. Please try again or enter manually.",
+        variant: "destructive"
+      });
+    } finally {
+      // Reset recording states
+      setTranscript("");
+      setProcessingVoice(false);
+      setRecording(false);
     }
-    
-    // If no type was explicitly mentioned, try to infer from common activities
-    if (!newActivity.type) {
-      if (lowerText.includes('plow') || lowerText.includes('till') || lowerText.includes('prepare')) {
-        newActivity.type = 'Cultivation';
-      } else if (lowerText.includes('plant') || lowerText.includes('seed') || lowerText.includes('sow')) {
-        newActivity.type = 'Sowing';
-      } else if (lowerText.includes('fertiliz') || lowerText.includes('nutrient') || lowerText.includes('npk')) {
-        newActivity.type = 'Fertilizer';
-      } else if (lowerText.includes('pest') || lowerText.includes('insect') || lowerText.includes('spray')) {
-        newActivity.type = 'Pesticide';
-      } else if (lowerText.includes('water') || lowerText.includes('irrigat')) {
-        newActivity.type = 'Irrigation';
-      } else if (lowerText.includes('harvest') || lowerText.includes('collect') || lowerText.includes('pick')) {
-        newActivity.type = 'Harvesting';
-      } else if (lowerText.includes('loan') || lowerText.includes('insur') || lowerText.includes('invest') || lowerText.includes('subsid') || lowerText.includes('money') || lowerText.includes('payment')) {
-        newActivity.type = 'Financial';
-      } else {
-        // Default if we can't determine
-        newActivity.type = 'Other';
-      }
-    }
-    
-    // Extract the name (using the first sentence or part of text as activity name)
-    const nameParts = text.split(/[.,;:]/).filter(part => part.trim().length > 0);
-    if (nameParts.length > 0) {
-      // Capitalize first letter of each word
-      newActivity.name = nameParts[0].trim().split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    } else {
-      newActivity.name = `New ${newActivity.type} Activity`;
-    }
-    
-    // Try to extract expense amount
-    const expenseMatch = lowerText.match(/(?:spent|cost|expense|rupees|rs\.?|₹)\s*(?:of|is|was|:)?\s*(\d+(?:\.\d+)?)/i);
-    if (expenseMatch) {
-      newActivity.expense = parseFloat(expenseMatch[1]);
-    } else {
-      // Look for any number that might represent an expense
-      const numberMatch = lowerText.match(/(\d+(?:\.\d+)?)\s*(?:rupees|rs\.?|₹)/i);
-      if (numberMatch) {
-        newActivity.expense = parseFloat(numberMatch[1]);
-      } else {
-        // Default value if no expense detected - set to 0
-        newActivity.expense = 0;
-      }
-    }
-    
-    // For specific activity types, extract additional details
-    if (newActivity.type === 'Fertilizer') {
-      // Try to extract fertilizer name and quantity
-      const fertilizerMatch = lowerText.match(/(?:fertilizer|npk)(?:\s+is|\s+of|\s+with|\s+:)?\s+([^\d.,;:]+)/i);
-      const quantityMatch = lowerText.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilogram|g|gram|ton|lb)/i);
-      
-      if (fertilizerMatch) {
-        newActivity.details.fertilizer.name = fertilizerMatch[1].trim().charAt(0).toUpperCase() + 
-          fertilizerMatch[1].trim().slice(1);
-      } else {
-        newActivity.details.fertilizer.name = 'Unspecified';
-      }
-      
-      if (quantityMatch) {
-        newActivity.details.fertilizer.quantity = quantityMatch[0].trim();
-      } else {
-        newActivity.details.fertilizer.quantity = 'Unspecified';
-      }
-    } else if (newActivity.type === 'Pesticide') {
-      // Try to extract pesticide name and quantity
-      const pesticideMatch = lowerText.match(/(?:pesticide|spray|chemical)(?:\s+is|\s+of|\s+with|\s+:)?\s+([^\d.,;:]+)/i);
-      const quantityMatch = lowerText.match(/(\d+(?:\.\d+)?)\s*(?:l|ml|liter|litre)/i);
-      
-      if (pesticideMatch) {
-        newActivity.details.pesticide.name = pesticideMatch[1].trim().charAt(0).toUpperCase() + 
-          pesticideMatch[1].trim().slice(1);
-      } else {
-        newActivity.details.pesticide.name = 'Unspecified';
-      }
-      
-      if (quantityMatch) {
-        newActivity.details.pesticide.quantity = quantityMatch[0].trim();
-      } else {
-        newActivity.details.pesticide.quantity = 'Unspecified';
-      }
-    } else if (newActivity.type === 'Financial') {
-      // Determine financial category
-      let category = 'other';
-      if (lowerText.includes('loan')) {
-        category = 'loan';
-      } else if (lowerText.includes('insur')) {
-        category = 'insurance';
-      } else if (lowerText.includes('invest')) {
-        category = 'investment';
-      } else if (lowerText.includes('subsid')) {
-        category = 'subsidy';
-      }
-      
-      // Determine payment method
-      let paymentMethod = 'cash';
-      if (lowerText.includes('upi') || lowerText.includes('online')) {
-        paymentMethod = 'upi';
-      } else if (lowerText.includes('bank') || lowerText.includes('transfer')) {
-        paymentMethod = 'bank';
-      } else if (lowerText.includes('cheque') || lowerText.includes('check')) {
-        paymentMethod = 'cheque';
-      }
-      
-      newActivity.details.financial.category = category;
-      newActivity.details.financial.paymentMethod = paymentMethod;
-    }
-    
-    // Convert recognized activity to form data
-    const formData = {
-      type: newActivity.type || '',
-      name: newActivity.name || '',
-      expense: newActivity.expense ? newActivity.expense.toString() : '0',
-      summary: newActivity.summary || '',
-      isExpense: true,
-      fertilizer: {
-        name: newActivity.details.fertilizer.name || '',
-        quantity: newActivity.details.fertilizer.quantity || '',
-        billImage: null
-      },
-      pesticide: {
-        name: newActivity.details.pesticide.name || '',
-        quantity: newActivity.details.pesticide.quantity || '',
-        billImage: null
-      },
-      financial: {
-        category: newActivity.details.financial.category || '',
-        paymentMethod: newActivity.details.financial.paymentMethod || '',
-        receiptImage: null
-      }
-    };
-    
-    // Set the form data and show the form
-    setFormDataFromSpeech(formData);
-    setShowActivityForm(true);
-    
-    // Reset recording states
-    setTranscript("");
-    setProcessingVoice(false);
-    setRecording(false);
   };
 
   const handleAddActivity = async (data: any) => {
@@ -646,9 +605,9 @@ const YieldDetails = () => {
       // Get mobile number for the API request
       const mobileNo = getUserMobileNumber();
       
-      // Use the exact activity type from the UI
-      // Instead of mapping it to different values
-      const activityType = formattedData.type;
+      // Map UI activity type to lowercase for backend compatibility
+      // Backend expects: fertilizer, pesticide, financial, cultivation, sowing, irrigation, harvesting, other
+      let activityType = formattedData.type.toLowerCase();
       
       // Calculate the expense value correctly
       const expenseValue = formattedData.isExpense ? formattedData.expense : -formattedData.expense;
@@ -657,22 +616,22 @@ const YieldDetails = () => {
       const apiPayload: any = {
         yield_id: yieldId,
         mobileno: mobileNo,
-        activity_type: activityType, // Use the exact activity type from UI
+        activity_type: activityType, // Use lowercase activity type for backend
         activity_name: formattedData.name,
         summary: formattedData.summary || "",
         amount: expenseValue
       };
       
       // Add type-specific fields
-      if (formattedData.type === "Fertilizer" && formattedData.fertilizer) {
+      if (activityType === "fertilizer" && formattedData.fertilizer) {
         apiPayload.fertilizer_name = formattedData.fertilizer.name || "";
         apiPayload.quantity = formattedData.fertilizer.quantity || "";
         apiPayload.bill_image = formattedData.fertilizer.billImage || "";
-      } else if (formattedData.type === "Pesticide" && formattedData.pesticide) {
+      } else if (activityType === "pesticide" && formattedData.pesticide) {
         apiPayload.pesticide_name = formattedData.pesticide.name || "";
         apiPayload.quantity = formattedData.pesticide.quantity || "";
         apiPayload.bill_image = formattedData.pesticide.billImage || "";
-      } else if (formattedData.type === "Financial" && formattedData.financial) {
+      } else if (activityType === "financial" && formattedData.financial) {
         apiPayload.financial_category = formattedData.financial.category || "";
         apiPayload.payment_method = formattedData.financial.paymentMethod || "";
         apiPayload.receipt = formattedData.financial.receiptImage || "";
