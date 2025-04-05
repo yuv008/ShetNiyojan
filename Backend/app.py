@@ -521,8 +521,8 @@ def get_groq_insights(soil_params, soil_type, location, land_area, model_name="l
 # Routes
 
 
-@app.route('/recommend_crop_predict', methods=['POST'])
-def predict():
+@app.route('/crop-recommendation', methods=['POST'])
+def crop_recommendation():
     if not model:
         return jsonify({"error": "Model not loaded. Please check server logs."}), 500
     
