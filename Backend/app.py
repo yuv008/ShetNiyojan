@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
-from db import users_collection
+from db import users_collection, yields_collection
 import base64
 from groq import Groq
 from decouple import config
@@ -11,6 +11,8 @@ from functools import wraps
 import pickle as pkl
 from flask_cors import CORS
 import os
+import datetime
+from bson.objectid import ObjectId
 
 base_dir  = os.path.dirname(os.path.abspath(__file__))
 
@@ -149,9 +151,10 @@ def analyze_plant(current_user):
         return jsonify({"error": str(e)}), 500
     
 
+# ------------------ Crop Recommendation ------------------
 @app.route('/api/crop-recommendation', methods=['POST'])
-# @token_required
-def crop_recommendation():
+@token_required
+def crop_recommendation(current_user):
     REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
 
     # Validate input JSON
@@ -181,6 +184,147 @@ def crop_recommendation():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ------------------ Yield Management ------------------
+@app.route('/api/yields', methods=['GET'])
+@token_required
+def get_yields(current_user):
+    try:
+        user_yields = list(yields_collection.find({"userId": current_user["_id"]}))
+        
+        # Convert ObjectId to string for JSON serialization
+        for yield_item in user_yields:
+            yield_item['id'] = str(yield_item.pop('_id'))
+            if 'userId' in yield_item:
+                yield_item['userId'] = str(yield_item['userId'])
+            
+        return jsonify(user_yields), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/yields/<yield_id>', methods=['GET'])
+@token_required
+def get_yield(current_user, yield_id):
+    try:
+        # First, validate that the yield exists and belongs to the user
+        yield_item = yields_collection.find_one({"_id": ObjectId(yield_id), "userId": current_user["_id"]})
+        
+        if not yield_item:
+            return jsonify({"error": "Yield not found or access denied"}), 404
+            
+        # Convert ObjectId to string for JSON serialization
+        yield_item['id'] = str(yield_item.pop('_id'))
+        if 'userId' in yield_item:
+            yield_item['userId'] = str(yield_item['userId'])
+            
+        return jsonify(yield_item), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/yields', methods=['POST'])
+def create_yield():
+    try:
+        data = request.json
+        print("Received yield creation request:", data)
+        
+        # Validate required fields
+        if not data.get('name') or not data.get('acres') or not data.get('mobileno'):
+            print("Missing required fields")
+            return jsonify({"error": "Name, acres, and mobile number are required"}), 400
+            
+        # Find user by mobile number
+        user = users_collection.find_one({'mobileno': data.get('mobileno')})
+        if not user:
+            print(f"User not found for mobile number: {data.get('mobileno')}")
+            return jsonify({"error": "User not found with the provided mobile number"}), 404
+            
+        print(f"Found user with ID: {user['_id']}")
+            
+        # Create yield document with minimal required fields
+        new_yield = {
+            "name": data.get('name'),
+            "acres": float(data.get('acres')),
+            "status": "planning",
+            "userId": user["_id"],
+            "createdAt": datetime.datetime.now()
+        }
+        
+        # Insert into database
+        result = yields_collection.insert_one(new_yield)
+        print(f"Inserted yield with ID: {result.inserted_id}")
+        
+        # Return the created yield with ID
+        created_yield = new_yield.copy()
+        created_yield['id'] = str(result.inserted_id)
+        created_yield['userId'] = str(created_yield['userId'])  # Convert userId to string for JSON serialization
+        if '_id' in created_yield:
+            del created_yield['_id']
+        
+        return jsonify(created_yield), 201
+    except Exception as e:
+        print(f"Error creating yield: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/yields/<yield_id>', methods=['PUT'])
+@token_required
+def update_yield(current_user, yield_id):
+    try:
+        data = request.json
+        
+        # Check if yield exists and belongs to user
+        existing_yield = yields_collection.find_one({"_id": ObjectId(yield_id), "userId": current_user["_id"]})
+        if not existing_yield:
+            return jsonify({"error": "Yield not found or access denied"}), 404
+            
+        # Update fields
+        update_data = {}
+        if 'name' in data:
+            update_data['name'] = data['name']
+        if 'acres' in data:
+            update_data['acres'] = float(data['acres'])
+        if 'status' in data:
+            update_data['status'] = data['status']
+        if 'health' in data:
+            update_data['health'] = data['health']
+        if 'plantDate' in data:
+            update_data['plantDate'] = data['plantDate']
+            
+        # Add updatedAt timestamp
+        update_data['updatedAt'] = datetime.datetime.now()
+        
+        # Update in database
+        yields_collection.update_one(
+            {"_id": ObjectId(yield_id)},
+            {"$set": update_data}
+        )
+        
+        # Return updated yield
+        updated_yield = yields_collection.find_one({"_id": ObjectId(yield_id)})
+        updated_yield['id'] = str(updated_yield.pop('_id'))
+        if 'userId' in updated_yield:
+            updated_yield['userId'] = str(updated_yield['userId'])
+        
+        return jsonify(updated_yield), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/yields/<yield_id>', methods=['DELETE'])
+@token_required
+def delete_yield(current_user, yield_id):
+    try:
+        # Check if yield exists and belongs to user
+        existing_yield = yields_collection.find_one({"_id": ObjectId(yield_id), "userId": current_user["_id"]})
+        if not existing_yield:
+            return jsonify({"error": "Yield not found or access denied"}), 404
+            
+        # Delete from database
+        yields_collection.delete_one({"_id": ObjectId(yield_id)})
+        
+        return jsonify({"message": "Yield deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ------------------ Run App ------------------
 if __name__ == '__main__':

@@ -4,16 +4,18 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { type Yield } from "./CurrentYields";
+import { useAuth } from "@/lib/auth-context";
 
 type YieldModalProps = {
   onClose: () => void;
-  onSubmit: (data: { name: string; acres: number }) => void;
+  onSubmit: (data: { name: string; acres: number; mobileno: string }) => void;
 };
 
 const YieldModal = ({ onClose, onSubmit }: YieldModalProps) => {
   const [name, setName] = useState("");
   const [acres, setAcres] = useState("");
   const [errors, setErrors] = useState<{ name?: string; acres?: string }>({});
+  const { user } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +38,18 @@ const YieldModal = ({ onClose, onSubmit }: YieldModalProps) => {
       return;
     }
     
+    // Get user's mobile number from auth context
+    const mobileno = user?.mobileno || "";
+    
+    if (!mobileno) {
+      alert("User information not available. Please log in again.");
+      return;
+    }
+    
     onSubmit({
       name: name.trim(),
       acres: Number(acres),
+      mobileno
     });
     
     // Reset form
