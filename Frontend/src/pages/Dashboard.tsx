@@ -152,7 +152,7 @@ const Dashboard = () => {
 
   const handleNavigateToLeaseMarketPlace = () => {
     navigate('/leasemarket');
-  }
+  };
 
   return (
     <div className="bg-agriBg min-h-screen w-full">
