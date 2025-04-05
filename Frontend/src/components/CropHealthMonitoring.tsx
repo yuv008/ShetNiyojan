@@ -18,6 +18,7 @@ interface DiseasePrediction {
   causes: string[];
   symptoms: string[];
   recommendations: string[];
+  doses?: string;
 }
 
 const CropHealthMonitoring: React.FC = () => {
@@ -123,137 +124,51 @@ const CropHealthMonitoring: React.FC = () => {
       
       if (response.data && response.data.analysis) {
         try {
-          // Parse the text-based response
-          const analysisText = response.data.analysis;
-          console.log("Raw analysis text:", analysisText);
+          // Parse the JSON response
+          let analysisString = response.data.analysis;
           
-          // Extract disease name - now checking multiple patterns
-          let diseaseName = 'Unknown Disease';
-          const diseaseNameMatch1 = analysisText.match(/\*\*Disease Name:\*\*\s*(.*?)(?=\n|\*)/i);
-          const diseaseNameMatch2 = analysisText.match(/\*\*Disease Diagnosis\*\*[\s\S]*?identified as\s*(.*?)(?=,|\n)/i);
-          const diseaseNameMatch3 = analysisText.match(/disease is identified as\s*(.*?)(?=,|\n)/i);
-          
-          if (diseaseNameMatch1) diseaseName = diseaseNameMatch1[1].trim();
-          else if (diseaseNameMatch2) diseaseName = diseaseNameMatch2[1].trim();
-          else if (diseaseNameMatch3) diseaseName = diseaseNameMatch3[1].trim();
-          
-          // Extract confidence - now checking for "Confidence Level" section
-          let confidenceValue = 0;
-          const confidenceMatch1 = analysisText.match(/\*\*Confidence:\*\*\s*(.*?)(?=\n|\*)/i);
-          const confidenceMatch2 = analysisText.match(/\*\*Confidence Level\*\*\s*\n\n(.*?)(?=\n\n)/i);
-          
-          if (confidenceMatch1) {
-            const confidenceText = confidenceMatch1[1].trim();
-            if (confidenceText.includes('%')) {
-              confidenceValue = parseInt(confidenceText.replace('%', ''));
-            } else if (confidenceText.toLowerCase().includes('high')) {
-              confidenceValue = 90;
-            } else if (confidenceText.toLowerCase().includes('medium') || confidenceText.toLowerCase().includes('moderate')) {
-              confidenceValue = 70;
-            } else if (confidenceText.toLowerCase().includes('low')) {
-              confidenceValue = 50;
-            }
-          } else if (confidenceMatch2) {
-            const confidenceText = confidenceMatch2[1].trim();
-            if (confidenceText.toLowerCase().includes('high')) {
-              confidenceValue = 90;
-            } else if (confidenceText.toLowerCase().includes('medium') || confidenceText.toLowerCase().includes('moderate')) {
-              confidenceValue = 70;
-            } else if (confidenceText.toLowerCase().includes('low')) {
-              confidenceValue = 50;
-            }
+          // Remove markdown code block delimiters if present
+          if (typeof analysisString === 'string') {
+            // Remove leading and trailing backticks and whitespace
+            analysisString = analysisString.replace(/^```[\s\S]*?\n/, '').replace(/\n```$/, '').trim();
           }
           
-          // Extract severity - check for "Severity" section
-          let severity: 'Low' | 'Medium' | 'High' = 'Medium';
-          const severityMatch1 = analysisText.match(/\*\*Severity:\*\*\s*(.*?)(?=\n|\*)/i);
-          const severityMatch2 = analysisText.match(/\*\*Severity\*\*\s*\n\n(.*?)(?=\n\n)/i);
+          const analysisData = typeof analysisString === 'string' 
+            ? JSON.parse(analysisString) 
+            : analysisString;
           
-          if (severityMatch1) {
-            const severityText = severityMatch1[1].trim();
-            if (severityText.toLowerCase().includes('high') || severityText.toLowerCase().includes('severe')) {
-              severity = 'High';
-            } else if (severityText.toLowerCase().includes('low') || severityText.toLowerCase().includes('mild')) {
-              severity = 'Low';
-            }
-          } else if (severityMatch2) {
-            const severityText = severityMatch2[1].trim();
-            if (severityText.toLowerCase().includes('high') || severityText.toLowerCase().includes('severe')) {
-              severity = 'High';
-            } else if (severityText.toLowerCase().includes('low') || severityText.toLowerCase().includes('mild')) {
-              severity = 'Low';
-            }
-          }
+          console.log("Analysis data:", analysisData);
           
-          // Extract description - look for "Description" section
-          let description = 'No description available';
-          const descriptionMatch1 = analysisText.match(/\*\*Description:\*\*\s*(.*?)(?=\n\*\*|\n\*\s)/is);
-          const descriptionMatch2 = analysisText.match(/\*\*Description\*\*\s*\n\n(.*?)(?=\n\n\*\*)/is);
+          // Process causes, symptoms, and recommendations (convert from string to array if needed)
+          const processStringToArray = (input: string | string[]): string[] => {
+            if (Array.isArray(input)) return input;
+            return input.split(/\.\s*/).filter(item => item.trim().length > 0);
+          };
           
-          if (descriptionMatch1) {
-            description = descriptionMatch1[1].trim();
-          } else if (descriptionMatch2) {
-            description = descriptionMatch2[1].trim();
-          }
+          const causes = processStringToArray(analysisData.causes);
+          const symptoms = processStringToArray(analysisData.symptoms);
+          const recommendations = processStringToArray(analysisData.recommendations);
           
-          // Extract causes - look for "Causes" section with bullet points
-          let causes: string[] = [];
-          const causesMatch1 = analysisText.match(/\*\*Causes:\*\*\s*(.*?)(?=\n\*\*|\n\*\s)/is);
-          const causesMatch2 = analysisText.match(/\*\*Causes\*\*\s*\n\n([\s\S]*?)(?=\n\n\*\*)/is);
-          
-          if (causesMatch1) {
-            const causesText = causesMatch1[1].trim();
-            causes = causesText.split(/\n\t\+|\n\s*\+|\n\s*-/).map(item => item.trim()).filter(item => item.length > 0);
-          } else if (causesMatch2) {
-            const causesText = causesMatch2[1].trim();
-            causes = causesText.split(/\n\*|\n\s*\*|\n\s*-/).map(item => item.trim()).filter(item => item.length > 0);
-          }
-          
-          // Extract symptoms - look for "Symptoms" section with bullet points
-          let symptoms: string[] = [];
-          const symptomsMatch1 = analysisText.match(/\*\*Symptoms:\*\*\s*(.*?)(?=\n\*\*)/is);
-          const symptomsMatch2 = analysisText.match(/\*\*Symptoms\*\*\s*\n\n([\s\S]*?)(?=\n\n\*\*)/is);
-          
-          if (symptomsMatch1) {
-            const symptomsText = symptomsMatch1[1].trim();
-            symptoms = symptomsText.split(/\n\t\+|\n\s*\+|\n\s*-/).map(item => item.trim()).filter(item => item.length > 0);
-          } else if (symptomsMatch2) {
-            const symptomsText = symptomsMatch2[1].trim();
-            symptoms = symptomsText.split(/\n\*|\n\s*\*|\n\s*-/).map(item => item.trim()).filter(item => item.length > 0);
-          }
-          
-          // Extract recommendations - look for "Recommendations" section with bullet points
-          let recommendations: string[] = [];
-          const recommendationsMatch1 = analysisText.match(/\*\*Recommendations:\*\*\s*(.*?)(?=\n\*\*|\n\*\s|$)/is);
-          const recommendationsMatch2 = analysisText.match(/\*\*Recommendations\*\*\s*\n\n([\s\S]*?)(?=\n\n\*\*|$)/is);
-          
-          if (recommendationsMatch1) {
-            const recommendationsText = recommendationsMatch1[1].trim();
-            recommendations = recommendationsText.split(/\n\t\+|\n\s*\+|\n\s*-/).map(item => item.trim()).filter(item => item.length > 0);
-          } else if (recommendationsMatch2) {
-            const recommendationsText = recommendationsMatch2[1].trim();
-            recommendations = recommendationsText.split(/\n\*|\n\s*\*|\n\s*-/).map(item => item.trim()).filter(item => item.length > 0);
-          }
-          
-          console.log("Extracted data:", {
-            diseaseName,
-            confidenceValue,
-            severity,
-            description,
-            causes,
-            symptoms,
-            recommendations
-          });
+          // Set default values for fields not in the response
+          const confidenceValue = 85; // Default confidence value
+          const severity: 'Low' | 'Medium' | 'High' = 'Medium'; // Default severity
           
           setPrediction({
-            diseaseName,
+            diseaseName: analysisData.diseaseName,
             confidence: confidenceValue,
-            severity,
-            description,
-            causes,
-            symptoms,
-            recommendations
+            severity: severity,
+            description: analysisData.description,
+            causes: causes,
+            symptoms: symptoms,
+            recommendations: recommendations,
+            doses: analysisData.doses
           });
+          
+          // Add "doses" section to the UI if available
+          if (analysisData.doses) {
+            // This will be handled in the UI update
+          }
+          
         } catch (parseError) {
           console.error('Error parsing analysis data:', parseError);
           setError('Failed to parse analysis data');
@@ -525,6 +440,18 @@ const CropHealthMonitoring: React.FC = () => {
                   </ul>
                 </div>
               </div>
+
+              {prediction.doses && (
+                <div className="mt-6">
+                  <h3 className="text-xl font-medium text-agrigreen mb-3 flex items-center">
+                    <ImageIcon className="mr-2 h-5 w-5 text-agrigreen" />
+                    Recommended Doses
+                  </h3>
+                  <div className="bg-agrigreen-light/10 p-4 rounded-lg border border-agrigreen-light">
+                    <p className="text-gray-700">{prediction.doses}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
