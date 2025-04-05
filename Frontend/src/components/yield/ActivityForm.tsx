@@ -19,6 +19,7 @@ interface ActivityFormProps {
   audioData?: any; // Speech recognition data
 }
 
+// Updated activity types with proper capitalization for UI display
 const activityTypes = [
   "Cultivation",
   "Sowing",
@@ -26,8 +27,8 @@ const activityTypes = [
   "Pesticide",
   "Irrigation",
   "Harvesting",
-  "Other",
-  "Financial"
+  "Financial",
+  "Other"
 ];
 
 const ActivityForm = ({ onClose, onSubmit, audioData }: ActivityFormProps) => {
