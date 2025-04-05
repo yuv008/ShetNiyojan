@@ -9,12 +9,14 @@ import pandas as pd
 import numpy as np
 from functools import wraps
 import pickle as pkl
+from plant_disease_model import predict_disease
 from flask_cors import CORS
 import os
 import datetime
 from bson.objectid import ObjectId
 
 base_dir  = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = "uploads"
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -92,98 +94,74 @@ def profile(current_user):
 
 # ------------------ Plant Disease Analyzer ------------------
 @app.route('/api/plant-disease-analysis', methods=['POST'])
-@token_required
-def analyze_plant(current_user):
-    if 'image' not in request.files:
-        return jsonify({"error": "No image provided"}), 400
+def plant_disease_analysis():
+    if "image" not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+
+    image = request.files["image"]
+    image_path = os.path.join(UPLOAD_FOLDER, image.filename)
+    image.save(image_path)
 
     try:
-        # Read and encode image
-        image_file = request.files['image']
-        base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+        result = predict_disease(image_path)
+    
+        predicted_label = result['class']
+        confidence = round(result['confidence']*100,2)
 
-        # Prompt for Groq Vision model
-        prompt = """
-        You are an expert plant disease diagnosis agent. Analyze the uploaded plant image and respond with a detailed and informative JSON object including:
-        {
-            "diseaseName": "...",
-            "confidence": "...",
-            "severity": "...",
-            "description": "...",
-            "causes": "...",
-            "symptoms": "...",
-            "recommendations": "..."
-        }
-        Be precise and scientific in your response. The output should be strictly valid JSON and nothing else.
+
+        prompt = f"""
+        The plant disease predicted is: **{predicted_label}**.
+
+        As a plant pathology expert, generate a structured, informative JSON object with the following keys:
+        {{
+            "diseaseName": "Name of the disease",
+            "description": "Scientific and general overview of the disease",
+            "causes": "Possible causes or conditions for this disease",
+            "symptoms": "Visual and physical symptoms to look out for",
+            "recommendations": "Best practices to handle this disease",
+            "doses": "Pesticide/fertilizer doses and frequency if applicable"
+        }}
+
+        Please be precise and strictly return only the valid JSON, no extra explanation.
         """
 
-        # Groq client setup
-        GROQ_API_KEY = config("GROQ_API_KEY")
-        client = Groq(api_key=GROQ_API_KEY)
+        # Initialize Groq client with API key
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-        # Call Groq Vision
-        response = client.chat.completions.create(
-            model="llama-3.2-11b-vision-preview",
+        # Make the chat completion request
+        chat_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
+                    "role": "system",
+                    "content": "You are a helpful assistant with deep agricultural and plant pathology knowledge."
+                },
+                {
                     "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}",
-                            },
-                        },
-                    ],
+                    "content": prompt
                 }
             ],
             temperature=0.5,
             max_completion_tokens=1024,
             top_p=1,
+            stop=None,
             stream=False
         )
 
-        result = response.choices[0].message.content
-        return jsonify({"analysis": result}), 200
+# Extract the response
+        detailed_info = chat_completion.choices[0].message.content.strip()
+
+
+        return jsonify({
+            "predictedDisease": predicted_label,
+            "confidence": confidence,
+            "analysis": detailed_info
+        }), 200
+
+    
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
-
-# ------------------ Crop Recommendation ------------------
-@app.route('/api/crop-recommendation', methods=['POST'])
-@token_required
-def crop_recommendation(current_user):
-    REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
-
-    # Validate input JSON
-    data = request.get_json()
-    missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
-    if missing_fields:
-        return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
-
-    try:
-        # Load models (open the file first, then pass to pickle.load)
-        model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
-        scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
-
-        with open(model_path, 'rb') as f:
-            crop_recommend_model = pkl.load(f)
-
-        with open(scaler_path, 'rb') as f:
-            crop_scaler = pkl.load(f)
-
-        # Prepare and scale input data
-        df = pd.DataFrame([data])
-        scaled_data = crop_scaler.transform(df)
-
-        # Predict
-        prediction = crop_recommend_model.predict(scaled_data)[0]
-        return jsonify({'recommended_crop': prediction}), 201
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 # ------------------ Yield Management ------------------
 @app.route('/api/yields', methods=['GET'])
