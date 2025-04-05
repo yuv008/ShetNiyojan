@@ -13,6 +13,7 @@ import CropHealthMonitoring from "./components/CropHealthMonitoring";
 import CurrentYields from './components/dashboard/CurrentYields';
 import ChatBot from './components/ChatBot';
 import Marketplace from './components/Marketplace';
+import LeaseMarketplace from './pages/LeaseMarketPlace';
 
 function App() {
   return (
@@ -29,6 +30,11 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/leasemarket" element={
+            <ProtectedRoute>
+              <LeaseMarketplace />
             </ProtectedRoute>
           } />
           <Route path="/yield/*" element={
