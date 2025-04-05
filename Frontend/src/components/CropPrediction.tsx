@@ -61,30 +61,221 @@ const CropPrediction: React.FC = () => {
     }));
   };
   
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate prediction calculation (would be an API call in production)
-    setTimeout(() => {
-      // Sample prediction logic - this would be replaced with actual ML model results
-      const possibleCrops: CropInfo[] = [
-        { name: 'Rice', score: 95, waterRequirement: 'High', growthPeriod: '3-4 months' },
-        { name: 'Wheat', score: 82, waterRequirement: 'Medium', growthPeriod: '4-5 months' },
-        { name: 'Maize', score: 75, waterRequirement: 'Medium', growthPeriod: '3-4 months' }
-      ];
+    try {
+      // Convert frontend form data to match backend API requirements
+      const apiData = {
+        N: formData.soilNitrogen,
+        P: formData.soilPhosphorus,
+        K: formData.soilPotassium,
+        temperature: formData.temperature,
+        humidity: formData.humidity,
+        ph: formData.soilPH,
+        rainfall: formData.rainfall
+      };
       
-      setPrediction({
-        bestCrop: 'Rice',
-        confidence: 95,
-        alternativeCrops: possibleCrops,
-        environmentalSuitability: 'Excellent',
-        estimatedYield: '5-6 tons/hectare',
-        recommendations: 'Consider planting in early spring for optimal yield. Requires regular irrigation.'
+      console.log("Sending data to API:", apiData);
+      
+      // Call the backend API
+      const response = await fetch("http://localhost:5000/api/crop-recommendation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-access-token": localStorage.getItem("userToken") || ""
+        },
+        body: JSON.stringify(apiData)
       });
       
+      const result = await response.json();
+      console.log("API response:", result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to get crop recommendation");
+      }
+      
+      // Get the recommended crop from the response
+      const recommendedCrop = result.recommended_crop;
+      
+      // Sample crop info based on the recommendation
+      // In a real application, this would come from a database or API
+      const cropInfoMap: Record<string, CropInfo> = {
+        rice: { 
+          name: 'Rice', 
+          score: 95, 
+          waterRequirement: 'High', 
+          growthPeriod: '3-4 months' 
+        },
+        wheat: { 
+          name: 'Wheat', 
+          score: 90, 
+          waterRequirement: 'Medium', 
+          growthPeriod: '4-5 months' 
+        },
+        maize: { 
+          name: 'Maize', 
+          score: 88, 
+          waterRequirement: 'Medium', 
+          growthPeriod: '3-4 months' 
+        },
+        chickpea: { 
+          name: 'Chickpea', 
+          score: 85, 
+          waterRequirement: 'Low', 
+          growthPeriod: '3-4 months' 
+        },
+        kidneybeans: { 
+          name: 'Kidney Beans', 
+          score: 84, 
+          waterRequirement: 'Medium', 
+          growthPeriod: '2-3 months' 
+        },
+        pigeonpeas: { 
+          name: 'Pigeon Peas', 
+          score: 82, 
+          waterRequirement: 'Low', 
+          growthPeriod: '4-5 months' 
+        },
+        mothbeans: { 
+          name: 'Moth Beans', 
+          score: 80, 
+          waterRequirement: 'Low', 
+          growthPeriod: '2-3 months' 
+        },
+        mungbean: { 
+          name: 'Mung Bean', 
+          score: 83, 
+          waterRequirement: 'Low', 
+          growthPeriod: '2-3 months' 
+        },
+        blackgram: { 
+          name: 'Black Gram', 
+          score: 81, 
+          waterRequirement: 'Medium', 
+          growthPeriod: '3-4 months' 
+        },
+        lentil: { 
+          name: 'Lentil', 
+          score: 82, 
+          waterRequirement: 'Low', 
+          growthPeriod: '3-4 months' 
+        },
+        pomegranate: { 
+          name: 'Pomegranate', 
+          score: 87, 
+          waterRequirement: 'Medium', 
+          growthPeriod: 'Perennial' 
+        },
+        banana: { 
+          name: 'Banana', 
+          score: 89, 
+          waterRequirement: 'High', 
+          growthPeriod: '10-12 months' 
+        },
+        mango: { 
+          name: 'Mango', 
+          score: 86, 
+          waterRequirement: 'Medium', 
+          growthPeriod: 'Perennial' 
+        },
+        grapes: { 
+          name: 'Grapes', 
+          score: 85, 
+          waterRequirement: 'Medium', 
+          growthPeriod: 'Perennial' 
+        },
+        watermelon: { 
+          name: 'Watermelon', 
+          score: 84, 
+          waterRequirement: 'High', 
+          growthPeriod: '3-4 months' 
+        },
+        muskmelon: { 
+          name: 'Muskmelon', 
+          score: 83, 
+          waterRequirement: 'Medium', 
+          growthPeriod: '3-4 months' 
+        },
+        apple: { 
+          name: 'Apple', 
+          score: 88, 
+          waterRequirement: 'Medium', 
+          growthPeriod: 'Perennial' 
+        },
+        orange: { 
+          name: 'Orange', 
+          score: 87, 
+          waterRequirement: 'Medium', 
+          growthPeriod: 'Perennial' 
+        },
+        papaya: { 
+          name: 'Papaya', 
+          score: 85, 
+          waterRequirement: 'Medium', 
+          growthPeriod: '8-10 months' 
+        },
+        coconut: { 
+          name: 'Coconut', 
+          score: 89, 
+          waterRequirement: 'High', 
+          growthPeriod: 'Perennial' 
+        },
+        cotton: { 
+          name: 'Cotton', 
+          score: 82, 
+          waterRequirement: 'Medium', 
+          growthPeriod: '5-6 months' 
+        },
+        jute: { 
+          name: 'Jute', 
+          score: 81, 
+          waterRequirement: 'High', 
+          growthPeriod: '4-5 months' 
+        },
+        coffee: { 
+          name: 'Coffee', 
+          score: 86, 
+          waterRequirement: 'Medium', 
+          growthPeriod: 'Perennial' 
+        }
+      };
+      
+      // Get crop info for the recommended crop
+      const cropName = recommendedCrop.toLowerCase().replace(/\s+/g, '');
+      const cropInfo = cropInfoMap[cropName] || {
+        name: recommendedCrop,
+        score: 90,
+        waterRequirement: 'Medium',
+        growthPeriod: '3-4 months'
+      };
+      
+      // Generate alternative crops (excluding the recommended crop)
+      const allCrops = Object.values(cropInfoMap);
+      const alternatives = allCrops
+        .filter(crop => crop.name.toLowerCase() !== cropInfo.name.toLowerCase())
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
+      
+      // Set prediction result
+      setPrediction({
+        bestCrop: cropInfo.name,
+        confidence: cropInfo.score,
+        alternativeCrops: alternatives,
+        environmentalSuitability: 'Excellent',
+        estimatedYield: cropInfo.waterRequirement === 'High' ? '5-6 tons/hectare' : 
+                        cropInfo.waterRequirement === 'Medium' ? '3-4 tons/hectare' : 
+                        '2-3 tons/hectare',
+        recommendations: `The ideal crop for your conditions is ${cropInfo.name}. It requires ${cropInfo.waterRequirement.toLowerCase()} water and has a growth period of ${cropInfo.growthPeriod}.`
+      });
+      
+    } catch (error) {
+      console.error("Error getting crop recommendation:", error);
+      alert("Failed to get crop recommendation. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
   
   const resetForm = (): void => {

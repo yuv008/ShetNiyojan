@@ -1,4 +1,3 @@
-
 import { Monitor, TrendingUp, GraduationCap } from 'lucide-react';
 
 const Solutions = () => {
@@ -6,9 +5,9 @@ const Solutions = () => {
     <div className="bg-white py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-sm font-semibold text-agriorange uppercase mb-2">BENEFIT OF AGRIFUTURE</h2>
+          <h2 className="text-sm font-semibold text-agriorange uppercase mb-2">BENEFIT OF ShetNiyojan</h2>
           <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            What Agrifuture Solutions <br className="hidden sm:block" />
+            What ShetNiyojan Solutions <br className="hidden sm:block" />
             Are You Seeking?
           </h3>
         </div>
