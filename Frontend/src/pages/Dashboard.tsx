@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Search, Bell, User, MapPin, ArrowUpRight, 
   Leaf, Sun, Wind, Thermometer, Activity, Droplets, Clock 
@@ -15,20 +15,122 @@ import logoImage from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "@/components/common/DashboardHeader";
 import CurrentYields from '../components/dashboard/CurrentYields';
+import { yields as yieldsApi, auth, YieldData } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+
+// Define the Yield type
+interface Yield {
+  id: string;
+  name: string;
+  acres: number;
+  status: "growing" | "harvested" | "planning";
+  health: number;
+  plantDate: string;
+  userId: string;
+}
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddYieldModal, setShowAddYieldModal] = useState(false);
+  const [userYields, setUserYields] = useState<Yield[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
-  const handleAddYield = (data: { name: string; acres: number }) => {
-    // In a real app, this would save to a database
-    toast({
-      title: "Yield Added",
-      description: `Added ${data.name} (${data.acres} acres) to current season`,
-    });
-    setShowAddYieldModal(false);
+  // Fetch user's yields when component mounts
+  useEffect(() => {
+    const fetchYields = async () => {
+      try {
+        setLoading(true);
+        const response = await yieldsApi.getAll();
+        console.log("Fetched yields:", response);
+        setUserYields(response);
+      } catch (error) {
+        console.error("Error fetching yields:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load your yields. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchYields();
+    }
+  }, [user, toast]);
+  
+  const handleAddYield = async (data: { name: string; acres: number; mobileno: string }) => {
+    try {
+      // Simplified yield data - just name, acres and mobile number
+      const yieldData = {
+        name: data.name,
+        acres: data.acres,
+        mobileno: data.mobileno
+      };
+      
+      console.log("Sending data to API:", yieldData);
+      
+      // Call API directly instead of using yields API
+      const response = await fetch("http://localhost:5000/api/yields", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(yieldData)
+      });
+      
+      const result = await response.json();
+      console.log("API response:", result);
+      
+      if (!response.ok) {
+        console.error("Error response:", response.status, result);
+        throw new Error(result.error || "Failed to add yield");
+      }
+      
+      // Update local state with the new yield from the server
+      setUserYields(prevYields => [...prevYields, result]);
+      
+      toast({
+        title: "Yield Added",
+        description: `Added ${data.name} (${data.acres} acres) to current season`,
+      });
+      
+      setShowAddYieldModal(false);
+    } catch (error) {
+      console.error("Error adding yield:", error);
+      toast({
+        title: "Error",
+        description: typeof error === 'object' && error !== null && 'message' in error
+          ? String(error.message)
+          : "Failed to add yield. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteYield = async (yieldId: string) => {
+    try {
+      await yieldsApi.delete(yieldId);
+      
+      // Update local state
+      setUserYields(prevYields => prevYields.filter(y => y.id !== yieldId));
+      
+      toast({
+        title: "Yield Deleted",
+        description: "Yield has been successfully deleted",
+      });
+    } catch (error) {
+      console.error("Error deleting yield:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete yield. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleYieldClick = (yieldId: string) => {
@@ -41,6 +143,10 @@ const Dashboard = () => {
 
   const handleNavigateToCropHealthMonitoring = () => {
     navigate('/crop-health');
+  };
+
+  const handleNavigateToMarketplace = () => {
+    navigate('/marketplace');
   };
 
   return (
@@ -73,110 +179,42 @@ const Dashboard = () => {
                 </div>
                 
                 <div className="space-y-3">
-                  {/* Yield Item */}
-                  <div 
-                    className="flex items-center p-3 bg-agrigreen/5 rounded-lg border border-agrigreen/20 cursor-pointer hover:bg-agrigreen/10 transition-colors"
-                    onClick={() => handleYieldClick("spinach-08")}
-                  >
-                    <div className="bg-agrigreen/10 p-2 rounded-full mr-3">
-                      <Leaf className="w-5 h-5 text-agrigreen" />
+                  {loading ? (
+                    <div className="flex justify-center items-center h-40">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agrigreen"></div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">Spinach Garden 08</h3>
-                      <div className="flex text-xs text-muted-foreground">
-                        <span>200 acres</span>
-                        <span className="mx-2">•</span>
-                        <span>12 activities</span>
-                      </div>
-                    </div>
-                    <div className="bg-green-500/10 px-2 py-1 rounded text-xs text-green-600 font-medium">
-                      Active
-                    </div>
-                  </div>
-                  
-                  {/* Yield Item */}
-                  <div 
-                    className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleYieldClick("tomato-a2")}
-                  >
-                    <div className="bg-blue-500/10 p-2 rounded-full mr-3">
-                      <Leaf className="w-5 h-5 text-blue-500" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">Tomato Field A2</h3>
-                      <div className="flex text-xs text-muted-foreground">
-                        <span>150 acres</span>
-                        <span className="mx-2">•</span>
-                        <span>8 activities</span>
-                      </div>
-                    </div>
-                    <div className="bg-blue-500/10 px-2 py-1 rounded text-xs text-blue-600 font-medium">
-                      Growing
-                    </div>
-                  </div>
-                  
-                  {/* Yield Item */}
-                  <div 
-                    className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleYieldClick("rice-north")}
-                  >
-                    <div className="bg-purple-500/10 p-2 rounded-full mr-3">
-                      <Leaf className="w-5 h-5 text-purple-500" />
-                    </div>
-                  <div className="flex-1">
-                      <h3 className="font-medium">Rice Paddy North</h3>
-                      <div className="flex text-xs text-muted-foreground">
-                        <span>300 acres</span>
-                        <span className="mx-2">•</span>
-                        <span>15 activities</span>
-                      </div>
-                    </div>
-                    <div className="bg-purple-500/10 px-2 py-1 rounded text-xs text-purple-600 font-medium">
-                      Harvesting
-                    </div>
-                  </div>
-
-                  {/* Yield Item */}
-                  <div 
-                    className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleYieldClick("wheat-east")}
-                  >
-                    <div className="bg-orange-500/10 p-2 rounded-full mr-3">
-                      <Leaf className="w-5 h-5 text-orange-500" />
+                  ) : userYields.length > 0 ? (
+                    userYields.map(yieldItem => (
+                      <div 
+                        key={yieldItem.id}
+                        className="flex items-center p-3 bg-agrigreen/5 rounded-lg border border-agrigreen/20 cursor-pointer hover:bg-agrigreen/10 transition-colors"
+                        onClick={() => handleYieldClick(yieldItem.id)}
+                      >
+                        <div className="bg-agrigreen/10 p-2 rounded-full mr-3">
+                          <Leaf className="w-5 h-5 text-agrigreen" />
                         </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">Wheat Field East</h3>
-                      <div className="flex text-xs text-muted-foreground">
-                        <span>250 acres</span>
-                        <span className="mx-2">•</span>
-                        <span>9 activities</span>
+                        <div className="flex-1">
+                          <h3 className="font-medium">{yieldItem.name}</h3>
+                          <div className="flex text-xs text-muted-foreground">
+                            <span>{yieldItem.acres} acres</span>
+                            <span className="mx-2">•</span>
+                            <span>Status: {yieldItem.status}</span>
+                          </div>
+                        </div>
+                        <div className={`px-2 py-1 rounded text-xs font-medium ${
+                          yieldItem.status === 'growing' ? 'bg-green-500/10 text-green-600' :
+                          yieldItem.status === 'harvested' ? 'bg-blue-500/10 text-blue-600' :
+                          'bg-yellow-500/10 text-yellow-600'
+                        }`}>
+                          {yieldItem.status.charAt(0).toUpperCase() + yieldItem.status.slice(1)}
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No yields added yet. Click "New" to add your first yield.</p>
                     </div>
-                    <div className="bg-orange-500/10 px-2 py-1 rounded text-xs text-orange-600 font-medium">
-                      Mature
-                    </div>
-                  </div>
-
-                  {/* Yield Item */}
-                  <div 
-                    className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleYieldClick("corn-south")}
-                  >
-                    <div className="bg-cyan-500/10 p-2 rounded-full mr-3">
-                      <Leaf className="w-5 h-5 text-cyan-500" />
-                  </div>
-                  <div className="flex-1">
-                      <h3 className="font-medium">Corn Field South</h3>
-                      <div className="flex text-xs text-muted-foreground">
-                        <span>175 acres</span>
-                        <span className="mx-2">•</span>
-                        <span>5 activities</span>
-                      </div>
-                    </div>
-                    <div className="bg-cyan-500/10 px-2 py-1 rounded text-xs text-cyan-600 font-medium">
-                      Planting
-                    </div>
-                  </div>
+                  )}
                 </div>
               </Card>
 
@@ -238,13 +276,16 @@ const Dashboard = () => {
                   </Card>
 
                   {/* Market & Supply Chain */}
-                  <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+                  <Card 
+                    className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                    onClick={handleNavigateToMarketplace}
+                  >
                     <div className="flex flex-col items-center text-center">
                       <div className="bg-agriorange/10 p-4 rounded-full mb-3">
                         <AlertTriangle className="w-8 h-8 text-agriorange" />
                       </div>
-                      <h3 className="font-medium text-base mb-1">Market Management</h3>
-                      <p className="text-xs text-muted-foreground">Price tracking & market analysis</p>
+                      <h3 className="font-medium text-base mb-1">Marketplace</h3>
+                      <p className="text-xs text-muted-foreground">Find nearby markets & supplies</p>
                     </div>
                     <div className="absolute top-2 right-2">
                       <div className="h-2 w-2 bg-agriorange rounded-full"></div>
@@ -288,7 +329,7 @@ const Dashboard = () => {
               <Card className="p-4">
                 <h3 className="font-medium mb-4">Current Season</h3>
                 <div className="text-center mb-4">
-                  <div className="text-5xl font-bold text-agrigreen">5</div>
+                  <div className="text-5xl font-bold text-agrigreen">{userYields.length}</div>
                   <div className="text-sm text-muted-foreground mt-2">Active Yields</div>
                 </div>
                 <Button 
@@ -396,8 +437,5 @@ const SensorStatus = ({ name, id, type, status, warning }: SensorStatusProps) =>
     </div>
   );
 };
-
-
-
 
 export default Dashboard;

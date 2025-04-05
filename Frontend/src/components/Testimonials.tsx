@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 
 const Testimonials = () => {
@@ -28,7 +27,7 @@ const Testimonials = () => {
     <div className="bg-agriBg py-16" ref={testimonialsRef}>
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-sm font-semibold text-agriorange uppercase mb-2">IMPACT BY AGRIFUTURE</h2>
+          <h2 className="text-sm font-semibold text-agriorange uppercase mb-2">IMPACT BY ShetNiyojan</h2>
           <h3 className="text-3xl md:text-4xl font-bold text-gray-900">
             Farmers are Making Farming <br className="hidden sm:block" />
             Easier and Happier Lives

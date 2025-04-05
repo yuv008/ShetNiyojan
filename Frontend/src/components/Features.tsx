@@ -1,4 +1,3 @@
-
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,7 @@ const Features = ({ dashboardImage }: HeroProps = {}) => {
     <div className="bg-agriBg py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-sm font-semibold text-agriorange uppercase mb-2">WHY AGRIFUTURE</h2>
+          <h2 className="text-sm font-semibold text-agriorange uppercase mb-2">WHY ShetNiyojan</h2>
           <h3 className="text-3xl md:text-4xl font-bold text-gray-900">
             Innovative, Sustainable, <br className="hidden sm:block" />
             and Efficient Solutions

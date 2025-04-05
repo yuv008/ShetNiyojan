@@ -48,6 +48,16 @@ export interface RegisterData {
   password: string;
 }
 
+export interface YieldData {
+  id?: string;
+  name: string;
+  acres: number;
+  status?: "growing" | "harvested" | "planning";
+  health?: number;
+  plantDate?: string;
+  userId?: string;
+}
+
 export const auth = {
   login: async (credentials: LoginCredentials) => {
     const response = await api.post('/users/login', credentials);
@@ -87,6 +97,63 @@ export const auth = {
       return null;
     }
   },
+};
+
+export const yields = {
+  // Get all yields for the current user
+  getAll: async () => {
+    try {
+      const response = await api.get('/yields');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching yields:', error);
+      throw error;
+    }
+  },
+
+  // Get a specific yield by ID
+  getById: async (id: string) => {
+    try {
+      const response = await api.get(`/yields/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching yield ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Create a new yield
+  create: async (yieldData: YieldData) => {
+    try {
+      const response = await api.post('/yields', yieldData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating yield:', error);
+      throw error;
+    }
+  },
+
+  // Update an existing yield
+  update: async (id: string, yieldData: Partial<YieldData>) => {
+    try {
+      const response = await api.put(`/yields/${id}`, yieldData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating yield ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete a yield
+  delete: async (id: string) => {
+    try {
+      const response = await api.delete(`/yields/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting yield ${id}:`, error);
+      throw error;
+    }
+  }
 };
 
 export default api; 
