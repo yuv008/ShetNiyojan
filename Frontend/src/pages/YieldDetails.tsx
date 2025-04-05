@@ -7,7 +7,7 @@ import {
   CheckSquare, 
   Activity, 
   Mic, 
-  PieChart, 
+  PieChart as PieChartIcon, 
   ToggleLeft,
   Tractor,
   Sprout,
@@ -15,7 +15,11 @@ import {
   Bug,
   Droplets,
   Wheat,
-  HelpCircle
+  HelpCircle,
+  ArrowLeft,
+  TrendingDown,
+  Lightbulb,
+  Loader2
 } from "lucide-react";
 import ActivityForm from "@/components/yield/ActivityForm";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -25,6 +29,7 @@ import axios from "axios";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import LanguageSelector from "@/components/common/LanguageSelector";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 interface YieldDetailsProps {
   id?: string;
@@ -113,6 +118,12 @@ declare global {
   }
 }
 
+interface ExpenseCategory {
+  name: string;
+  value: number;
+  color: string;
+}
+
 const YieldDetails = () => {
   // Get yieldId from URL - with wildcard route, we need to parse it from the pathname
   const { id } = useParams(); // This might be undefined with wildcard route
@@ -131,6 +142,7 @@ const YieldDetails = () => {
   const [processingVoice, setProcessingVoice] = useState<boolean>(false);
   const [formDataFromSpeech, setFormDataFromSpeech] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showFinancialView, setShowFinancialView] = useState<boolean>(false);
   
   const recognitionRef = useRef<any>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -173,6 +185,11 @@ const YieldDetails = () => {
       }
     ]
   });
+
+  // Add these state variables after other state declarations
+  const [aiSuggestions, setAiSuggestions] = useState<{title: string; description: string; category: string}[]>([]);
+  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState<boolean>(false);
+  const [aiSuggestionsError, setAiSuggestionsError] = useState<string | null>(null);
 
   // Fetch yield data and activities when component mounts
   useEffect(() => {
@@ -762,8 +779,196 @@ const YieldDetails = () => {
     console.log(`Marking yield as ${newStatus}`);
   };
 
-  const openFinancialAnalytics = () => {
-    console.log("Opening financial analytics");
+  const getExpenseData = (): ExpenseCategory[] => {
+    if (!yieldData || !yieldData.activityList || yieldData.activityList.length === 0) {
+      return [];
+    }
+    
+    // Group expenses by activity type
+    const expensesByCategory: Record<string, number> = {};
+    
+    yieldData.activityList.forEach(activity => {
+      if (activity.expense && activity.expense > 0) {
+        // Use activity type as the category
+        const category = activity.type || 'Other';
+        expensesByCategory[category] = (expensesByCategory[category] || 0) + activity.expense;
+      }
+    });
+    
+    // Define colors for each category
+    const categoryColors: Record<string, string> = {
+      'Cultivation': '#FF8C00', // Orange
+      'Sowing': '#4CAF50',      // Green
+      'Fertilizer': '#9C27B0',  // Purple
+      'Pesticide': '#F44336',   // Red
+      'Irrigation': '#2196F3',  // Blue
+      'Harvesting': '#FFC107',  // Yellow
+      'Financial': '#009688',   // Teal
+      'Other': '#607D8B'        // Gray
+    };
+    
+    // Convert to array format for the chart
+    return Object.keys(expensesByCategory).map(category => ({
+      name: category,
+      value: expensesByCategory[category],
+      color: categoryColors[category] || '#607D8B' // Default to gray if no color defined
+    }));
+  };
+
+  const toggleFinancialView = () => {
+    setShowFinancialView(!showFinancialView);
+  };
+
+  // Replace the fetchAISuggestions function with additional logging
+  const fetchAISuggestions = async () => {
+    // Skip if already loading or if we already have suggestions
+    if (loadingAiSuggestions || aiSuggestions.length > 0) return;
+    
+    console.log("Starting fetchAISuggestions...");
+    setLoadingAiSuggestions(true);
+    setAiSuggestionsError(null);
+    
+    try {
+      // Prepare the expense data for the API
+      const expenseData = getExpenseData().map(category => ({
+        name: category.name,
+        value: category.value,
+        percentage: Math.round((category.value / yieldData.expense) * 100)
+      }));
+      
+      console.log("Expense data prepared:", expenseData);
+      console.log("Total expense:", yieldData.expense);
+      
+      const requestData = {
+        expenseData,
+        yieldName: yieldData.name,
+        totalExpense: yieldData.expense
+      };
+      
+      console.log("Sending request with data:", requestData);
+      console.log("User token:", localStorage.getItem("userToken"));
+      
+      // Call the backend API
+      const response = await axios.post(
+        "http://localhost:5000/api/cost-reduction-suggestions", 
+        requestData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-access-token": localStorage.getItem("userToken")
+          }
+        }
+      );
+      
+      console.log("Received response:", response.data);
+      
+      // Check if the response was successful
+      if (response.data.status === "success" && response.data.data && response.data.data.suggestions) {
+        console.log("Setting suggestions:", response.data.data.suggestions);
+        setAiSuggestions(response.data.data.suggestions);
+      } else {
+        console.error("Unexpected API response format:", response.data);
+        setAiSuggestionsError("Received invalid response from server");
+      }
+    } catch (error) {
+      console.error("Error fetching AI suggestions:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data
+        });
+        setAiSuggestionsError(`Failed to fetch suggestions: ${error.response?.status} ${error.response?.statusText}`);
+      } else {
+        setAiSuggestionsError("Failed to fetch cost reduction suggestions");
+      }
+    } finally {
+      console.log("Finished fetchAISuggestions");
+      setLoadingAiSuggestions(false);
+    }
+  };
+
+  // Add this useEffect to fetch suggestions when the financial view is shown
+  useEffect(() => {
+    if (showFinancialView && getExpenseData().length > 0 && aiSuggestions.length === 0) {
+      fetchAISuggestions();
+    }
+  }, [showFinancialView]);
+
+  // Re-add the getCostSavingSuggestions function that was removed
+  const getCostSavingSuggestions = () => {
+    const expenseData = getExpenseData();
+    const suggestions: { title: string; description: string; icon: JSX.Element }[] = [];
+    
+    // Sort expenses by value (highest first)
+    const sortedExpenses = [...expenseData].sort((a, b) => b.value - a.value);
+    
+    // Get the highest expense category
+    if (sortedExpenses.length > 0) {
+      const highestExpense = sortedExpenses[0];
+      
+      // Generate specific suggestions based on the category
+      if (highestExpense.name === 'Fertilizer') {
+        suggestions.push({
+          title: 'Optimize Fertilizer Usage',
+          description: 'Consider soil testing to determine exact nutrient needs. Using targeted fertilizer application can reduce costs by 15-30%.',
+          icon: <Beaker className="h-5 w-5 text-purple-600" />
+        });
+        suggestions.push({
+          title: 'Try Organic Alternatives',
+          description: 'Compost and manure can reduce chemical fertilizer costs. Consider crop rotation with nitrogen-fixing plants.',
+          icon: <Sprout className="h-5 w-5 text-green-600" />
+        });
+      } else if (highestExpense.name === 'Pesticide') {
+        suggestions.push({
+          title: 'Implement IPM Strategies',
+          description: 'Integrated Pest Management can reduce pesticide use by combining biological controls with targeted applications.',
+          icon: <Bug className="h-5 w-5 text-red-600" />
+        });
+        suggestions.push({
+          title: 'Use Pest-Resistant Varieties',
+          description: 'Planting resistant crop varieties can reduce pesticide expenses by up to 25%.',
+          icon: <Leaf className="h-5 w-5 text-green-600" />
+        });
+      } else if (highestExpense.name === 'Irrigation') {
+        suggestions.push({
+          title: 'Upgrade Irrigation System',
+          description: 'Drip irrigation can reduce water usage by 30-50% compared to traditional methods, saving on water costs.',
+          icon: <Droplets className="h-5 w-5 text-blue-600" />
+        });
+        suggestions.push({
+          title: 'Implement Irrigation Scheduling',
+          description: 'Using soil moisture sensors and weather data can optimize irrigation timing and reduce waste.',
+          icon: <Activity className="h-5 w-5 text-blue-600" />
+        });
+      } else if (highestExpense.name === 'Cultivation') {
+        suggestions.push({
+          title: 'Consider No-Till Farming',
+          description: 'Reducing tillage can save on fuel, labor, and equipment costs while improving soil health.',
+          icon: <Tractor className="h-5 w-5 text-orange-600" />
+        });
+        suggestions.push({
+          title: 'Share Equipment',
+          description: 'Partner with neighboring farmers to share expensive equipment and reduce individual costs.',
+          icon: <DollarSign className="h-5 w-5 text-green-600" />
+        });
+      }
+    }
+    
+    // Add general suggestions that apply to any farm
+    suggestions.push({
+      title: 'Bulk Purchasing',
+      description: 'Buy inputs in bulk or through farmer cooperatives to get better prices on seeds, fertilizers, and other supplies.',
+      icon: <DollarSign className="h-5 w-5 text-green-600" />
+    });
+    
+    suggestions.push({
+      title: 'Track and Analyze Expenses',
+      description: 'Continue monitoring expenses closely to identify trends and opportunities for cost reduction.',
+      icon: <PieChartIcon className="h-5 w-5 text-blue-600" />
+    });
+    
+    return suggestions;
   };
 
   return (
@@ -812,11 +1017,20 @@ const YieldDetails = () => {
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={openFinancialAnalytics}
+                  onClick={toggleFinancialView}
                   className="flex items-center gap-1"
                 >
-                  <PieChart className="h-5 w-5" />
-                  Financial Analytics
+                  {showFinancialView ? (
+                    <>
+                      <ArrowLeft className="h-5 w-5" />
+                      Back to Activities
+                    </>
+                  ) : (
+                    <>
+                      <PieChartIcon className="h-5 w-5" />
+                      Financial Analytics
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -886,105 +1100,276 @@ const YieldDetails = () => {
               </Card>
             )}
 
-            <Card className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Activities</h2>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => {
-                      setFormDataFromSpeech(null);
-                      setShowActivityForm(true);
-                    }} 
-                    className="flex items-center gap-1"
-                  >
-                    <span>+</span> Add New Entry
-                  </Button>
-                  <Button 
-                    onClick={startRecording}
-                    disabled={recording || showActivityForm}
-                    className="flex items-center gap-1"
-                  >
-                    <Mic className="h-5 w-5" />
-                    Voice Input
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {yieldData.activityList.map((activity, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="bg-gray-100 p-1.5 rounded">
-                            {getActivityIcon(activity.type)}
-                          </div>
-                          <span className={`px-2 py-1 rounded text-sm ${
-                            activity.type === "Cultivation" ? "bg-orange-100 text-orange-800" :
-                            activity.type === "Sowing" ? "bg-green-100 text-green-800" :
-                            activity.type === "Fertilizer" ? "bg-purple-100 text-purple-800" :
-                            activity.type === "Pesticide" ? "bg-red-100 text-red-800" :
-                            activity.type === "Irrigation" ? "bg-blue-100 text-blue-800" :
-                            activity.type === "Harvesting" ? "bg-yellow-100 text-yellow-800" :
-                            activity.type === "Financial" ? "bg-green-100 text-green-800" :
-                            "bg-gray-100 text-gray-800"
-                          }`}>
-                            {activity.type}
-                          </span>
-                          <span className="text-gray-500 text-sm">{activity.date}</span>
+            {/* Toggle between Financial View and Regular View */}
+            {showFinancialView ? (
+              // Financial Analytics View
+              <div>
+                <Card className="p-6 mb-6">
+                  <h2 className="text-xl font-semibold mb-4">Expense Breakdown by Category</h2>
+                  
+                  {getExpenseData().length > 0 ? (
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={getExpenseData()}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={true}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {getExpenseData().map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number) => [`₹${value}`, 'Amount']}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="flex justify-center items-center h-[300px] bg-gray-50 rounded-lg">
+                      <p className="text-gray-500">No expense data available to display</p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Summary</h4>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span>Total Expenses:</span>
+                          <span className="font-bold">₹{yieldData.expense}</span>
                         </div>
-                        <h3 className="font-medium">{activity.name}</h3>
-                        {activity.summary && (
-                          <p className="text-sm text-gray-600 mt-1">{activity.summary}</p>
-                        )}
-                        {activity.type === "Fertilizer" && activity.fertilizer && (
-                          <div className="mt-2 text-sm text-gray-600">
-                            <p>Fertilizer: {activity.fertilizer.name}</p>
-                            <p>Quantity: {activity.fertilizer.quantity}</p>
-                            {activity.fertilizer.billImage && (
-                              <div className="mt-2">
-                                <a href="#" className="text-blue-600 hover:underline">
-                                  View Bill Image
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {activity.type === "Pesticide" && activity.pesticide && (
-                          <div className="mt-2 text-sm text-gray-600">
-                            <p>Pesticide: {activity.pesticide.name}</p>
-                            <p>Quantity: {activity.pesticide.quantity}</p>
-                            {activity.pesticide.billImage && (
-                              <div className="mt-2">
-                                <a href="#" className="text-blue-600 hover:underline">
-                                  View Bill Image
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {activity.type === "Financial" && activity.financial && (
-                          <div className="mt-2 text-sm text-gray-600">
-                            <p>Category: {activity.financial.category}</p>
-                            <p>Payment Method: {activity.financial.paymentMethod}</p>
-                            {activity.financial.receiptImage && (
-                              <div className="mt-2">
-                                <a href="#" className="text-blue-600 hover:underline">
-                                  View Receipt
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <span className="text-lg font-semibold">₹{activity.expense}</span>
+                        <div className="flex justify-between">
+                          <span>Number of Activities:</span>
+                          <span>{yieldData.activities}</span>
+                        </div>
                       </div>
                     </div>
-                  </Card>
-                ))}
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">Expense Details</h4>
+                      {getExpenseData().map((category, index) => (
+                        <div key={index} className="flex justify-between">
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: category.color }}></div>
+                            <span>{category.name}:</span>
+                          </div>
+                          <span>₹{category.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+                
+                {/* Cost-saving Suggestions */}
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingDown className="h-6 w-6 text-green-600" />
+                    <h2 className="text-xl font-semibold">AI Cost Reduction Suggestions</h2>
+                  </div>
+                  
+                  {loadingAiSuggestions ? (
+                    <div className="flex justify-center items-center py-16">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-agrigreen" />
+                        <p className="text-sm text-gray-500">Generating smart suggestions...</p>
+                      </div>
+                    </div>
+                  ) : aiSuggestionsError ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-600">{aiSuggestionsError}</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-2" 
+                        onClick={fetchAISuggestions}
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : aiSuggestions.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {aiSuggestions.map((suggestion, index) => (
+                        <Card key={index} className="p-4 border border-gray-200">
+                          <div className="flex gap-3">
+                            <div className="mt-1">
+                              <div className="bg-gray-100 p-2 rounded-full">
+                                {suggestion.category === "General" ? (
+                                  <DollarSign className="h-5 w-5 text-green-600" />
+                                ) : suggestion.category === "Fertilizer" ? (
+                                  <Beaker className="h-5 w-5 text-purple-600" />
+                                ) : suggestion.category === "Pesticide" ? (
+                                  <Bug className="h-5 w-5 text-red-600" />
+                                ) : suggestion.category === "Irrigation" ? (
+                                  <Droplets className="h-5 w-5 text-blue-600" />
+                                ) : suggestion.category === "Cultivation" ? (
+                                  <Tractor className="h-5 w-5 text-orange-600" />
+                                ) : suggestion.category === "Sowing" ? (
+                                  <Sprout className="h-5 w-5 text-green-600" />
+                                ) : suggestion.category === "Harvesting" ? (
+                                  <Wheat className="h-5 w-5 text-yellow-600" />
+                                ) : (
+                                  <Lightbulb className="h-5 w-5 text-yellow-500" />
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-lg flex items-center gap-2">
+                                {suggestion.title}
+                                {suggestion.category && suggestion.category !== "General" && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                                    {suggestion.category}
+                                  </span>
+                                )}
+                              </h3>
+                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {getCostSavingSuggestions().map((suggestion, index) => (
+                        <Card key={index} className="p-4 border border-gray-200">
+                          <div className="flex gap-3">
+                            <div className="mt-1">
+                              <div className="bg-gray-100 p-2 rounded-full">
+                                {suggestion.icon}
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-lg flex items-center gap-2">
+                                {suggestion.title}
+                                <Lightbulb className="h-4 w-4 text-yellow-500" />
+                              </h3>
+                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                      <div className="col-span-full mt-2">
+                        <Button 
+                          variant="outline" 
+                          className="w-full flex items-center justify-center gap-2" 
+                          onClick={fetchAISuggestions}
+                        >
+                          <Lightbulb className="h-4 w-4" />
+                          Get AI-Powered Cost Reduction Suggestions
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </Card>
               </div>
-            </Card>
+            ) : (
+              // Regular Activities View
+              <Card className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold">Activities</h2>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        setFormDataFromSpeech(null);
+                        setShowActivityForm(true);
+                      }} 
+                      className="flex items-center gap-1"
+                    >
+                      <span>+</span> Add New Entry
+                    </Button>
+                    <Button 
+                      onClick={startRecording}
+                      disabled={recording || showActivityForm}
+                      className="flex items-center gap-1"
+                    >
+                      <Mic className="h-5 w-5" />
+                      Voice Input
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {yieldData.activityList.map((activity, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="bg-gray-100 p-1.5 rounded">
+                              {getActivityIcon(activity.type)}
+                            </div>
+                            <span className={`px-2 py-1 rounded text-sm ${
+                              activity.type === "Cultivation" ? "bg-orange-100 text-orange-800" :
+                              activity.type === "Sowing" ? "bg-green-100 text-green-800" :
+                              activity.type === "Fertilizer" ? "bg-purple-100 text-purple-800" :
+                              activity.type === "Pesticide" ? "bg-red-100 text-red-800" :
+                              activity.type === "Irrigation" ? "bg-blue-100 text-blue-800" :
+                              activity.type === "Harvesting" ? "bg-yellow-100 text-yellow-800" :
+                              activity.type === "Financial" ? "bg-green-100 text-green-800" :
+                              "bg-gray-100 text-gray-800"
+                            }`}>
+                              {activity.type}
+                            </span>
+                            <span className="text-gray-500 text-sm">{activity.date}</span>
+                          </div>
+                          <h3 className="font-medium">{activity.name}</h3>
+                          {activity.summary && (
+                            <p className="text-sm text-gray-600 mt-1">{activity.summary}</p>
+                          )}
+                          {activity.type === "Fertilizer" && activity.fertilizer && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p>Fertilizer: {activity.fertilizer.name}</p>
+                              <p>Quantity: {activity.fertilizer.quantity}</p>
+                              {activity.fertilizer.billImage && (
+                                <div className="mt-2">
+                                  <a href="#" className="text-blue-600 hover:underline">
+                                    View Bill Image
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {activity.type === "Pesticide" && activity.pesticide && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p>Pesticide: {activity.pesticide.name}</p>
+                              <p>Quantity: {activity.pesticide.quantity}</p>
+                              {activity.pesticide.billImage && (
+                                <div className="mt-2">
+                                  <a href="#" className="text-blue-600 hover:underline">
+                                    View Bill Image
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {activity.type === "Financial" && activity.financial && (
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p>Category: {activity.financial.category}</p>
+                              <p>Payment Method: {activity.financial.paymentMethod}</p>
+                              {activity.financial.receiptImage && (
+                                <div className="mt-2">
+                                  <a href="#" className="text-blue-600 hover:underline">
+                                    View Receipt
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-semibold">₹{activity.expense}</span>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {showActivityForm && (
               <ActivityForm
@@ -995,7 +1380,7 @@ const YieldDetails = () => {
                 onSubmit={handleAddActivity}
                 audioData={formDataFromSpeech}
               />
-                )}
+            )}
               </>
             )}
           </div>

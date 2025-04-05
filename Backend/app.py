@@ -25,6 +25,7 @@ from typing import Dict, List, Optional, Any
 from collections import defaultdict
 from haversine import haversine
 import json
+import google.generativeai as genai
 
 base_dir  = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = "uploads"
@@ -1746,6 +1747,183 @@ def mobile_activity():
 
 # Call the seed function at startup
 seed_demo_data()
+
+# ------------------ Cost Reduction Suggestions API ------------------
+@app.route('/api/cost-reduction-suggestions', methods=['POST'])
+@token_required
+def get_cost_reduction_suggestions(current_user):
+    try:
+        print("Received cost reduction suggestion request")
+        data = request.json
+        print(f"Request data: {data}")
+        expense_data = data.get('expenseData', [])
+        yield_name = data.get('yieldName', 'your crop')
+        total_expense = data.get('totalExpense', 0)
+        
+        if not expense_data:
+            print("No expense data provided")
+            return jsonify({
+                "status": "error",
+                "message": "No expense data provided"
+            }), 400
+        
+        # Format expense data for the Gemini prompt
+        expense_text = ""
+        for category in expense_data:
+            expense_text += f"- {category['name']}: ₹{category['value']} ({category.get('percentage', 0)}% of total)\n"
+        
+        print(f"Formatted expense data: {expense_text}")
+        
+        # Create the prompt for Gemini
+        prompt = f"""
+        As an agricultural financial advisor, analyze the following expense data for {yield_name} and provide 4-6 specific cost reduction suggestions.
+        
+        Total Expense: ₹{total_expense}
+        
+        Expense Breakdown:
+        {expense_text}
+        
+        For each suggestion:
+        1. Provide a concise title (5-7 words)
+        2. Write a detailed explanation (2-3 sentences) with specific savings potential where possible
+        3. Categorize it as either "General" or specific to the highest expense category
+        
+        Format your response as valid JSON with this structure:
+        {{
+            "suggestions": [
+                {{
+                    "title": "Suggestion title",
+                    "description": "Detailed explanation with savings potential",
+                    "category": "Category name or General"
+                }},
+                // More suggestions...
+            ]
+        }}
+        
+        Return ONLY the JSON object without any additional explanation or markdown formatting.
+        """
+        
+        print("Prompt created for Gemini")
+        
+        # Generate suggestions with mock data for testing purpose
+        # This is a fallback if Gemini API is not available
+        mock_data = {
+            "suggestions": [
+                {
+                    "title": "Optimize fertilizer application",
+                    "description": "Use soil testing to determine exact nutrient needs. This can reduce fertilizer costs by 15-20% while maintaining or improving yields.",
+                    "category": "Fertilizer"
+                },
+                {
+                    "title": "Implement water-saving irrigation techniques",
+                    "description": "Switch to drip irrigation or moisture sensors to reduce water usage. This approach can save 30-50% on irrigation costs and prevent yield loss from over-watering.",
+                    "category": "Irrigation"
+                },
+                {
+                    "title": "Form equipment sharing cooperatives",
+                    "description": "Share expensive machinery with neighboring farmers to divide acquisition and maintenance costs. Equipment sharing can reduce capital expenses by 40-60%.",
+                    "category": "General"
+                },
+                {
+                    "title": "Use integrated pest management",
+                    "description": "Combine biological controls with targeted chemical applications. IPM can reduce pesticide costs by 30-40% while maintaining effective pest control.",
+                    "category": "Pesticide"
+                }
+            ]
+        }
+        
+        # Call Gemini API to generate suggestions
+        try:
+            # Initialize Gemini client with API key
+            api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                print("Gemini API key not configured, using mock data")
+                return jsonify({
+                    "status": "success",
+                    "data": mock_data
+                }), 200
+            
+            print(f"Using Gemini API key (first few chars): {api_key[:5]}...")
+            
+            # Configure the Gemini API
+            genai.configure(api_key=api_key)
+            
+            # Set up the model
+            generation_config = {
+                "temperature": 0.2,
+                "top_p": 0.95,
+                "top_k": 40,
+            }
+            
+            # Initialize the model
+            model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                generation_config=generation_config
+            )
+            
+            print("Making request to Gemini API using Python client")
+            response = model.generate_content(prompt)
+            
+            if not response:
+                print("Empty response from Gemini API")
+                return jsonify({
+                    "status": "success",
+                    "data": mock_data,
+                    "note": "Using fallback data due to empty API response"
+                }), 200
+            
+            print("Received response from Gemini API")
+            
+            # Extract the text from Gemini's response
+            try:
+                suggestions_text = response.text
+                print(f"Raw suggestions text (first 100 chars): {suggestions_text[:100]}...")
+            except Exception as e:
+                print(f"Error accessing response text: {e}")
+                return jsonify({
+                    "status": "success",
+                    "data": mock_data,
+                    "note": "Using fallback data due to API response format issue"
+                }), 200
+            
+            # Clean the JSON content by removing any markdown formatting
+            cleaned_json_content = suggestions_text.replace('```json\n', '').replace('```\n', '').replace('```', '').strip()
+            print(f"Cleaned JSON content (first 100 chars): {cleaned_json_content[:100]}...")
+            
+            # Parse the suggestions JSON
+            try:
+                suggestions_data = json.loads(cleaned_json_content)
+                print(f"Successfully parsed JSON with keys: {list(suggestions_data.keys())}")
+                return jsonify({
+                    "status": "success",
+                    "data": suggestions_data
+                }), 200
+            except json.JSONDecodeError as e:
+                print(f"Error parsing Gemini response as JSON: {e}")
+                print(f"Raw response: {suggestions_text}")
+                # Return mock data as fallback
+                return jsonify({
+                    "status": "success",
+                    "data": mock_data,
+                    "note": "Using fallback data due to JSON parsing error"
+                }), 200
+                
+        except Exception as gemini_error:
+            print(f"Error calling Gemini API: {str(gemini_error)}")
+            import traceback
+            traceback.print_exc()
+            # Return mock data as fallback
+            return jsonify({
+                "status": "success",
+                "data": mock_data,
+                "note": "Using fallback data due to API error"
+            }), 200
+    
+    except Exception as e:
+        print(f"Error in cost reduction suggestions: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 # ------------------ Run App ------------------
 if __name__ == '__main__':
