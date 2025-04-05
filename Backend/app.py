@@ -5,8 +5,13 @@ from db import users_collection
 import base64
 from groq import Groq
 from decouple import config
+import pandas as pd
+import numpy as np
 from functools import wraps
 from flask_cors import CORS
+import os
+
+base_dir  = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -141,6 +146,25 @@ def analyze_plant(current_user):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+import pickle as pkl
+# crop recommendation 
+@app.route('/api/crop-recommendation',methods=['POST'])
+# @token_required
+def crop_recommendation():
+    print(base_dir)
+    # load the model
+    crop_recommend_model = pkl.load(os.path.join(base_dir,'crop_recommendation','crop_recommendation_model.pkl'))
+    crop_scaler = pkl.load(os.path.join(base_dir,'crop_recommendation','minmaxscaler_crop_recommendation.pkl'))
+    n = request.data.get('N')
+    p = request.data.get('P')
+    k = request.data.get('K')
+    temperature = request.data.get('temperature')
+    rainfall = request.data.get('rainfall')
+    humidity = request.data.get('humdidiy')
+
+    return jsonify({}) , 201
+
 
 # ------------------ Run App ------------------
 if __name__ == '__main__':
