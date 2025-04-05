@@ -39,12 +39,12 @@ const Navbar = ({ logo }: NavbarProps = {}) => {
           </Link>
 
           {/* Desktop Menu */}
-          <nav className="hidden md:flex items-center gap-8">
+          {/* <nav className="hidden md:flex items-center gap-8">
             <Link to="/" className="text-gray-700 hover:text-agrigreen">Home</Link>
             <Link to="/dashboard" className="text-gray-700 hover:text-agrigreen">Dashboard</Link>
             <Link to="/tasks" className="text-gray-700 hover:text-agrigreen">Tasks</Link>
             <Link to="/projects" className="text-gray-700 hover:text-agrigreen">Projects</Link>
-          </nav>
+          </nav> */}
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
