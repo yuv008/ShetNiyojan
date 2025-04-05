@@ -335,6 +335,9 @@ const LeaseMarketplace: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
               <div>
+
+
+                
                 <h4 className="text-lg font-semibold mb-4">Equipment</h4>
                 <ul className="space-y-2 text-green-200">
                   <li><a href="#" className="hover:text-white">Tractors</a></li>
