@@ -108,52 +108,86 @@ const CropHealthMonitoring: React.FC = () => {
       return;
     }
 
-    console.log(formData);
-    
-    const data = new FormData()
-    data.append('image',formData.image)
     setError(null);
     setLoading(true);
-    const response = await axios.post("http://localhost:8000/api/plant-disease-analysis/",data,{
-      headers:{
-        Authorization: `Bearer ${localStorage.getItem('userToken')}`,
-      }
-    }).then(res => res.data);
-
-    console.log(response);
     
-    // Simulate prediction calculation (would be an API call in production)
-    setTimeout(() => {
-      // Sample prediction logic - this would be replaced with actual ML model results
-      setPrediction({
-        diseaseName: 'Bacterial Leaf Blight',
-        confidence: 92,
-        severity: 'High',
-        description: 'Bacterial leaf blight is a serious disease of rice and other crops caused by the bacterium Xanthomonas oryzae pv. oryzae. It can cause significant yield losses in susceptible varieties.',
-        causes: [
-          'Infected seeds or plant debris',
-          'Favorable environmental conditions (high humidity, warm temperatures)',
-          'Excessive nitrogen fertilization',
-          'Flooded fields with poor drainage'
-        ],
-        symptoms: [
-          'Yellow to white lesions on leaf edges',
-          'Lesions expand and turn brown',
-          'Wilting and death of affected leaves',
-          'Reduced grain filling and yield'
-        ],
-        recommendations: [
-          'Use disease-resistant varieties',
-          'Practice proper field drainage',
-          'Remove infected plant debris',
-          'Apply appropriate bactericides when symptoms first appear',
-          'Avoid excessive nitrogen fertilization',
-          'Practice crop rotation with non-host crops'
-        ]
+    try {
+      const data = new FormData();
+      data.append('image', formData.image);
+      
+      const response = await axios.post("http://localhost:5000/api/plant-disease-analysis", data, {
+        headers: {
+          'x-access-token': localStorage.getItem('userToken')
+        }
       });
       
+      if (response.data && response.data.analysis) {
+        try {
+          // Parse the text-based response
+          const analysisText = response.data.analysis;
+          
+          // Extract disease name
+          const diseaseNameMatch = analysisText.match(/\*\*Disease Name\*\*:\s*(.*?)(?=\n|\*\*)/);
+          const diseaseName = diseaseNameMatch ? diseaseNameMatch[1].trim() : 'Unknown Disease';
+          
+          // Extract confidence
+          const confidenceMatch = analysisText.match(/\*\*Confidence\*\*:\s*(.*?)(?=\n|\*\*)/);
+          const confidenceText = confidenceMatch ? confidenceMatch[1].trim() : 'Low';
+          // Convert text confidence to number
+          let confidenceValue = 0;
+          if (confidenceText.toLowerCase() === 'high') confidenceValue = 90;
+          else if (confidenceText.toLowerCase() === 'medium' || confidenceText.toLowerCase() === 'moderate') confidenceValue = 70;
+          else if (confidenceText.toLowerCase() === 'low') confidenceValue = 50;
+          
+          // Extract severity
+          const severityMatch = analysisText.match(/\*\*Severity\*\*:\s*(.*?)(?=\n|\*\*)/);
+          const severityText = severityMatch ? severityMatch[1].trim() : 'Medium';
+          let severity: 'Low' | 'Medium' | 'High' = 'Medium';
+          if (severityText.toLowerCase().includes('high')) severity = 'High';
+          else if (severityText.toLowerCase().includes('low')) severity = 'Low';
+          else severity = 'Medium';
+          
+          // Extract description
+          const descriptionMatch = analysisText.match(/\*\*Description\*\*:\s*(.*?)(?=\n|\*\*)/);
+          const description = descriptionMatch ? descriptionMatch[1].trim() : 'No description available';
+          
+          // Extract causes
+          const causesMatch = analysisText.match(/\*\*Causes\*\*:\s*(.*?)(?=\n|\*\*)/);
+          const causesText = causesMatch ? causesMatch[1].trim() : '';
+          const causes = causesText.split(/,\s*/).filter(item => item.length > 0);
+          
+          // Extract symptoms
+          const symptomsMatch = analysisText.match(/\*\*Symptoms\*\*:\s*(.*?)(?=\n|\*\*)/);
+          const symptomsText = symptomsMatch ? symptomsMatch[1].trim() : '';
+          const symptoms = symptomsText.split(/,\s*/).filter(item => item.length > 0);
+          
+          // Extract recommendations
+          const recommendationsMatch = analysisText.match(/\*\*Recommendations\*\*:\s*(.*?)(?=\n|$)/s);
+          const recommendationsText = recommendationsMatch ? recommendationsMatch[1].trim() : '';
+          const recommendations = recommendationsText.split(/,\s*/).filter(item => item.length > 0);
+          
+          setPrediction({
+            diseaseName,
+            confidence: confidenceValue,
+            severity,
+            description,
+            causes,
+            symptoms,
+            recommendations
+          });
+        } catch (parseError) {
+          console.error('Error parsing analysis data:', parseError);
+          setError('Failed to parse analysis data');
+        }
+      } else {
+        setError('No analysis data received from server');
+      }
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      setError('Failed to analyze image. Please try again.');
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
   
   const resetForm = (): void => {
