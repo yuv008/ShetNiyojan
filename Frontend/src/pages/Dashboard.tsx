@@ -145,6 +145,10 @@ const Dashboard = () => {
     navigate('/crop-health');
   };
 
+  const handleNavigateToMarketplace = () => {
+    navigate('/marketplace');
+  };
+
   return (
     <div className="bg-agriBg min-h-screen w-full">
       <div className="w-full h-full p-4">
@@ -272,13 +276,16 @@ const Dashboard = () => {
                   </Card>
 
                   {/* Market & Supply Chain */}
-                  <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+                  <Card 
+                    className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                    onClick={handleNavigateToMarketplace}
+                  >
                     <div className="flex flex-col items-center text-center">
                       <div className="bg-agriorange/10 p-4 rounded-full mb-3">
                         <AlertTriangle className="w-8 h-8 text-agriorange" />
                       </div>
-                      <h3 className="font-medium text-base mb-1">Market Management</h3>
-                      <p className="text-xs text-muted-foreground">Price tracking & market analysis</p>
+                      <h3 className="font-medium text-base mb-1">Marketplace</h3>
+                      <p className="text-xs text-muted-foreground">Find nearby markets & supplies</p>
                     </div>
                     <div className="absolute top-2 right-2">
                       <div className="h-2 w-2 bg-agriorange rounded-full"></div>
