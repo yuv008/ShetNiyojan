@@ -2,11 +2,12 @@ from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from db import users_collection, yields_collection,activities_collection
-import base64
 from groq import Groq
 from decouple import config
 import pandas as pd
 import numpy as np
+from datetime import datetime
+from bson import ObjectId
 from functools import wraps
 import pickle as pkl
 from plant_disease_model import predict_disease
@@ -307,50 +308,135 @@ def delete_yield(current_user, yield_id):
 
 #activities
 
+from flask import Flask, request, jsonify
+from datetime import datetime
+from bson import ObjectId
+from db import (
+    users_collection,
+    yields_collection,
+    activities_collection
+)
 
-@app.route('/create_activity', methods=['POST'])
+@app.route('/api/create_activity', methods=['POST'])
 def create_activity():
     data = request.get_json()
 
-    # Required fields
-    required_fields = ['yield', 'mobileno', 'price', 'summary', 'quantity', 'activity_type']
+    if not data or 'activity_type' not in data:
+        return jsonify({"error": "Missing 'activity_type'"}), 400
+
+    activity_type = data['activity_type']
+
+    # Required fields per activity type
+    if activity_type == 'fertilizer':
+        required_fields = ['yield_id', 'mobileno', 'activity_name', 'summary', 'amount', 'fertilizer_name', 'quantity', 'bill_image']
+    elif activity_type == 'pesticide':
+        required_fields = ['yield_id', 'mobileno', 'activity_name', 'summary', 'amount', 'pesticide_name', 'quantity', 'bill_image']
+    elif activity_type == 'financial':
+        required_fields = ['yield_id', 'mobileno', 'activity_name', 'summary', 'amount', 'financial_category', 'payment_method', 'receipt']
+    else:
+        required_fields = ['yield_id', 'mobileno', 'activity_name', 'summary', 'amount']
+
+    # Check for missing fields
     if not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Find user by mobile number
+    # Get user by mobile number
     user = users_collection.find_one({'mobileno': data['mobileno']})
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # Find yield by ID and match user ID
+    # Validate yield ID and ownership
     try:
         yield_obj = yields_collection.find_one({
-            '_id': ObjectId(data['yield']),
-            'user_id': user['_id']
+            '_id': ObjectId(data['yield_id']),
+            'userId': user['_id']
         })
     except Exception as e:
         return jsonify({"error": f"Invalid yield ID format: {str(e)}"}), 400
 
     if not yield_obj:
-        return jsonify({"error": "Yield not found for the given user"}), 404
+        return jsonify({"error": "Yield not found for this user"}), 404
 
-    # Insert the activity
+    # Base activity data
     activity = {
-        'user_id': user['_id'],
-        'yield_id': yield_obj['_id'],
-        'price': data['price'],
+        'userId': user['_id'],
+        'yieldId': yield_obj['_id'],
+        'activity_type': activity_type,
+        'activity_name': data['activity_name'],
         'summary': data['summary'],
-        'quantity': data['quantity'],
-        'activity_type': data['activity_type'],
+        'amount': data['amount'],
         'created_at': datetime.utcnow()
     }
 
-    result = activities_collection.insert_one(activity)
+    # Add extra fields
+    if activity_type == 'fertilizer':
+        activity['fertilizer_name'] = data['fertilizer_name']
+        activity['quantity'] = data['quantity']
+        activity['bill_image'] = data['bill_image']
 
-    return jsonify({
-        "message": "Activity created successfully",
-        "activity_id": str(result.inserted_id)
-    }), 201
+    elif activity_type == 'pesticide':
+        activity['pesticide_name'] = data['pesticide_name']
+        activity['quantity'] = data['quantity']
+        activity['bill_image'] = data['bill_image']
+
+    elif activity_type == 'financial':
+        activity['financial_category'] = data['financial_category']
+        activity['payment_method'] = data['payment_method']
+        activity['receipt'] = data['receipt']
+
+    # Insert into activities_collection
+    activities_collection.insert_one(activity)
+
+    return jsonify({"message": f"{activity_type.capitalize()} activity created successfully."}), 201
+
+
+# @app.route('/activities', methods=['GET'])
+# def get_activities_by_mobileno_and_yield_id():
+#     mobileno = request.args.get('mobileno')
+#     yield_id = request.args.get('yield_id')
+
+#     if not mobileno or not yield_id:
+#         return jsonify({"error": "Please provide both 'mobileno' and 'yield_id' in query params."}), 400
+
+#     # Find the user
+#     user = users_collection.find_one({'mobileno': mobileno})
+#     if not user:
+#         return jsonify({"error": "User with given mobileno not found."}), 404
+
+#     try:
+#         yield_obj_id = ObjectId(yield_id)
+#     except Exception as e:
+#         return jsonify({"error": f"Invalid yield_id format: {str(e)}"}), 400
+
+#     # Check if the yield belongs to the user
+#     yield_doc = yields_collection.find_one({
+#         '_id': yield_obj_id,
+#         'user_id': user['_id']
+#     })
+#     if not yield_doc:
+#         return jsonify({"error": "Yield not found or doesn't belong to this user."}), 404
+
+#     # Fetch activities
+#     activities = list(farm_activities_collection.find({
+#         'user_id': user['_id'],
+#         'yield_id': yield_obj_id
+#     }))
+
+#     # Convert ObjectIds to strings for JSON
+#     for activity in activities:
+#         activity['_id'] = str(activity['_id'])
+#         activity['user_id'] = str(activity['user_id'])
+#         activity['yield_id'] = str(activity['yield_id'])
+#         if 'created_at' in activity:
+#             activity['created_at'] = activity['created_at'].isoformat()
+
+#     return jsonify({
+#         "mobileno": mobileno,
+#         "yield_id": yield_id,
+#         "total_activities": len(activities),
+#         "activities": activities
+#     }), 200
+
 # ------------------ Run App ------------------
 if __name__ == '__main__':
     app.run(debug=True)
