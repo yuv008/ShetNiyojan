@@ -361,7 +361,7 @@ def create_activity():
     activity = {
         'userId': user['_id'],
         'yieldId': yield_obj['_id'],
-        'activity_type': data.['activity_type'],
+        'activity_type': data['activity_type'],
         'activity_name': data['activity_name'],
         'summary': data['summary'],
         'amount': data['amount'],
