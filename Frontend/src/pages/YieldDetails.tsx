@@ -249,21 +249,30 @@ const YieldDetails = () => {
       
       // Map the activities from the backend to our component's expected format
       if (activitiesResponse.data?.activities && Array.isArray(activitiesResponse.data.activities)) {
+        console.log("Raw activities from backend:", activitiesResponse.data.activities);
+        
         mappedYieldData.activityList = activitiesResponse.data.activities.map((activity: any) => {
-          // Map the backend activity types to our frontend types
-          const typeMap: Record<string, string> = {
-            "fertilizer": "Fertilizer",
-            "pesticide": "Pesticide",
-            "financial": "Financial",
-            "general": "Other"
-          };
+          console.log("Processing activity:", activity);
           
-          // Determine the activity type - if it's "general", try to infer a more specific type
-          let activityType = typeMap[activity.activity_type] || "Other";
+          // The activity type could be in different properties depending on the backend implementation
+          const rawActivityType = activity.activity_type || activity.type || "";
+          console.log("Raw activity type:", rawActivityType);
           
-          // For "general" type activities, try to infer a more specific type based on activity name
-          if (activity.activity_type === "general" || activityType === "Other") {
-            const activityNameLower = (activity.activity_name || "").toLowerCase();
+          // Determine the activity type - normalize to handle case differences
+          let activityType = "Other";
+          
+          // First check exact matches (case-insensitive)
+          const lowerRawType = rawActivityType.toLowerCase();
+          if (lowerRawType === "fertilizer" || lowerRawType === "pesticide" || 
+              lowerRawType === "financial" || lowerRawType === "cultivation" ||
+              lowerRawType === "sowing" || lowerRawType === "irrigation" || 
+              lowerRawType === "harvesting") {
+            // Capitalize first letter
+            activityType = lowerRawType.charAt(0).toUpperCase() + lowerRawType.slice(1);
+          } 
+          // If it's "general", try to infer a more specific type based on activity name
+          else if (lowerRawType === "general" || lowerRawType === "other") {
+            const activityNameLower = (activity.activity_name || activity.name || "").toLowerCase();
             
             if (activityNameLower.includes("plow") || activityNameLower.includes("till") || 
                 activityNameLower.includes("cultivat") || activityNameLower.includes("prepare")) {
@@ -280,12 +289,14 @@ const YieldDetails = () => {
             // Keep as "Other" if no specific type could be determined
           }
           
+          console.log("Mapped activity type:", activityType);
+          
           // Base activity object
           const mappedActivity: Activity = {
             type: activityType,
-            name: activity.activity_name || "Unnamed Activity",
-            date: activity.created_at || new Date().toLocaleString(),
-            expense: activity.amount || 0,
+            name: activity.activity_name || activity.name || "Unnamed Activity",
+            date: activity.created_at || activity.date || new Date().toLocaleString(),
+            expense: activity.amount || activity.expense || 0,
             summary: activity.summary || ""
           };
           
