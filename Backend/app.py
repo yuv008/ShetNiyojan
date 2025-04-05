@@ -389,53 +389,48 @@ def create_activity():
 
     return jsonify({"message": f"{activity_type.capitalize()} activity created successfully."}), 201
 
+@app.route('/api/activities',methods=['POST'])
+def get_activities():
+    data = request.get_json()
+    mobileno = data.get('mobileno')
+    yield_id = data.get('yield_id')
+    print(mobileno +" "+yield_id)
 
-# @app.route('/activities', methods=['GET'])
-# def get_activities_by_mobileno_and_yield_id():
-#     mobileno = request.args.get('mobileno')
-#     yield_id = request.args.get('yield_id')
+    if not mobileno or not yield_id:
+        return jsonify({"error": "Missing 'mobileno' or 'yield_id' in query parameters"}), 400
 
-#     if not mobileno or not yield_id:
-#         return jsonify({"error": "Please provide both 'mobileno' and 'yield_id' in query params."}), 400
+    # Find user by mobileno
+    user = users_collection.find_one({'mobileno': mobileno})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-#     # Find the user
-#     user = users_collection.find_one({'mobileno': mobileno})
-#     if not user:
-#         return jsonify({"error": "User with given mobileno not found."}), 404
+    # Find yield with given yield_id and user ownership
+    try:
+        yield_obj = yields_collection.find_one({
+            '_id': ObjectId(yield_id),
+            'userId': user['_id']
+        })
+    except Exception as e:
+        return jsonify({"error": f"Invalid yield ID format: {str(e)}"}), 400
 
-#     try:
-#         yield_obj_id = ObjectId(yield_id)
-#     except Exception as e:
-#         return jsonify({"error": f"Invalid yield_id format: {str(e)}"}), 400
+    if not yield_obj:
+        return jsonify({"error": "Yield not found for this user"}), 404
+    print(yield_obj)
+    # Fetch activities matching both user and yield
+    activities = list(activities_collection.find({
+        'userId': user['_id'],
+        'yieldId': yield_obj['_id']
+    }))
+    # print(activities)
 
-#     # Check if the yield belongs to the user
-#     yield_doc = yields_collection.find_one({
-#         '_id': yield_obj_id,
-#         'user_id': user['_id']
-#     })
-#     if not yield_doc:
-#         return jsonify({"error": "Yield not found or doesn't belong to this user."}), 404
+    # Convert ObjectId to string for JSON serializability
+    for activity in activities:
+        activity['_id'] = str(activity['_id'])
+        activity['userId'] = str(activity['userId'])
+        activity['yieldId'] = str(activity['yieldId'])
+        activity['created_at'] = activity['created_at'].isoformat()
 
-#     # Fetch activities
-#     activities = list(farm_activities_collection.find({
-#         'user_id': user['_id'],
-#         'yield_id': yield_obj_id
-#     }))
-
-#     # Convert ObjectIds to strings for JSON
-#     for activity in activities:
-#         activity['_id'] = str(activity['_id'])
-#         activity['user_id'] = str(activity['user_id'])
-#         activity['yield_id'] = str(activity['yield_id'])
-#         if 'created_at' in activity:
-#             activity['created_at'] = activity['created_at'].isoformat()
-
-#     return jsonify({
-#         "mobileno": mobileno,
-#         "yield_id": yield_id,
-#         "total_activities": len(activities),
-#         "activities": activities
-#     }), 200
+    return jsonify({"activities": activities}), 200
 
 # ------------------ Run App ------------------
 if __name__ == '__main__':
