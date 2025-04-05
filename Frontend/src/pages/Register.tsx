@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import LanguageSelector from "@/components/common/LanguageSelector";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -170,6 +171,13 @@ const Register = () => {
             </CardFooter>
           </form>
         </Card>
+      </div>
+      
+      {/* Floating language selector */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="bg-white p-2 rounded-lg shadow-lg">
+          <LanguageSelector />
+        </div>
       </div>
     </div>
   );
