@@ -41,8 +41,8 @@ const Register = () => {
       toast.success("Registration successful!");
       navigate("/dashboard");
     } catch (error: any) {
-      if (error.response?.status === 400 && error.response?.data?.error) {
-        toast.error(error.response.data.error);
+      if (error.response?.status === 400 && error.response?.data?.message) {
+        toast.error(error.response.data.message);
       } else if (error.response?.data?.mobileno) {
         toast.error(error.response.data.mobileno[0]);
       } else if (error.response?.data?.fullname) {

@@ -1,18 +1,17 @@
-from flask import Flask, request, jsonify 
+from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from db import users_collection
 import base64
 from groq import Groq
 from decouple import config
-from io import BytesIO
 from functools import wraps
-
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-
-# Middleware for token-based authentication
+# ------------------ Token Middleware ------------------
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -27,14 +26,16 @@ def token_required(f):
         return f(user, *args, **kwargs)
     return decorated
 
-
-
+# ------------------ User Registration ------------------
 @app.route('/api/users/register', methods=['POST'])
 def register():
     data = request.json
     fullname = data.get('fullname')
     mobileno = data.get('mobileno')
     password = data.get('password')
+
+    if not fullname or not mobileno or not password:
+        return jsonify({'message': 'All fields are required'}), 400
 
     if users_collection.find_one({'mobileno': mobileno}):
         return jsonify({'message': 'User already exists'}), 400
@@ -49,23 +50,30 @@ def register():
 
     return jsonify({'message': 'Registration successful'}), 201
 
-
+# ------------------ User Login ------------------
 @app.route('/api/users/login', methods=['POST'])
 def login():
     data = request.json
     mobileno = data.get('mobileno')
     password = data.get('password')
 
+    if not mobileno or not password:
+        return jsonify({'message': 'Mobile number and password are required'}), 400
+
     user = users_collection.find_one({'mobileno': mobileno})
-    if not user or not check_password_hash(user['password'], password):
+    if not user:
+        return jsonify({'message': 'Invalid credentials'}), 401
+
+    stored_password = user.get('password', '')
+    if not stored_password or not check_password_hash(stored_password, password):
         return jsonify({'message': 'Invalid credentials'}), 401
 
     token = str(uuid.uuid4())
     users_collection.update_one({'mobileno': mobileno}, {'$set': {'token': token}})
 
-    return jsonify({'token': token})
+    return jsonify({'token': token}), 200
 
-
+# ------------------ User Profile ------------------
 @app.route('/api/users/profile', methods=['GET'])
 @token_required
 def profile(current_user):
@@ -74,11 +82,10 @@ def profile(current_user):
         'mobileno': current_user['mobileno']
     })
 
-
-# groq vision
+# ------------------ Plant Disease Analyzer ------------------
 @app.route('/api/plant-disease-analysis', methods=['POST'])
 @token_required
-def analyze_plant():
+def analyze_plant(current_user):
     if 'image' not in request.files:
         return jsonify({"error": "No image provided"}), 400
 
@@ -99,7 +106,7 @@ def analyze_plant():
             "symptoms": "...",
             "recommendations": "..."
         }
-        Be precise and scientific in your response dont include any unnecessay text and responses. The output should be strictly valid JSON and nothing else.
+        Be precise and scientific in your response. The output should be strictly valid JSON and nothing else.
         """
 
         # Groq client setup
@@ -134,7 +141,7 @@ def analyze_plant():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
 
+# ------------------ Run App ------------------
 if __name__ == '__main__':
     app.run(debug=True)
