@@ -8,6 +8,7 @@ from decouple import config
 import pandas as pd
 import numpy as np
 from functools import wraps
+import pickle as pkl
 from flask_cors import CORS
 import os
 
@@ -101,7 +102,7 @@ def analyze_plant(current_user):
 
         # Prompt for Groq Vision model
         prompt = """
-        You are an expert plant disease diagnosis agent. Analyze the uploaded plant image and respond with a detailed JSON object including:
+        You are an expert plant disease diagnosis agent. Analyze the uploaded plant image and respond with a detailed and informative JSON object including:
         {
             "diseaseName": "...",
             "confidence": "...",
@@ -146,25 +147,40 @@ def analyze_plant(current_user):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
 
-import pickle as pkl
-# crop recommendation 
-@app.route('/api/crop-recommendation',methods=['POST'])
+@app.route('/api/crop-recommendation', methods=['POST'])
 # @token_required
 def crop_recommendation():
-    print(base_dir)
-    # load the model
-    crop_recommend_model = pkl.load(os.path.join(base_dir,'crop_recommendation','crop_recommendation_model.pkl'))
-    crop_scaler = pkl.load(os.path.join(base_dir,'crop_recommendation','minmaxscaler_crop_recommendation.pkl'))
-    n = request.data.get('N')
-    p = request.data.get('P')
-    k = request.data.get('K')
-    temperature = request.data.get('temperature')
-    rainfall = request.data.get('rainfall')
-    humidity = request.data.get('humdidiy')
+    REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
 
-    return jsonify({}) , 201
+    # Validate input JSON
+    data = request.get_json()
+    missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
+    if missing_fields:
+        return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
 
+    try:
+        # Load models (open the file first, then pass to pickle.load)
+        model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
+        scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
+
+        with open(model_path, 'rb') as f:
+            crop_recommend_model = pkl.load(f)
+
+        with open(scaler_path, 'rb') as f:
+            crop_scaler = pkl.load(f)
+
+        # Prepare and scale input data
+        df = pd.DataFrame([data])
+        scaled_data = crop_scaler.transform(df)
+
+        # Predict
+        prediction = crop_recommend_model.predict(scaled_data)[0]
+        return jsonify({'recommended_crop': prediction}), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ------------------ Run App ------------------
 if __name__ == '__main__':
