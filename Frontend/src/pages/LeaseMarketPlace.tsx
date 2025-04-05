@@ -1,146 +1,109 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Star, Phone, User, X, Search } from 'lucide-react';
+import { MapPin, Star, Phone, User, X, Search, Plus, Upload, Loader2 } from 'lucide-react';
 import DashboardHeader from '@/components/common/DashboardHeader';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import axios from 'axios';
+import { useAuth } from '@/lib/auth-context';
+import api from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 // Define types
 interface Equipment {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   category: string;
   description: string;
   pricePerHour: number;
-  pricePerDay: number;
-  pricePerWeek: number;
-  pricePerMonth: number;
   location: string;
-  rating: number;
-  reviews: number;
-  image: string;
+  rating?: number;
+  reviews?: number;
+  imageUrl: string;
   available: boolean;
-  owner: string;
-  contactNumber: string;
+  ownerName?: string;
+  ownerContact?: string;
 }
 
 const LeaseMarketplace: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [equipmentData, setEquipmentData] = useState<Equipment[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newItem, setNewItem] = useState<Partial<Equipment>>({
+    name: '',
+    category: '',
+    description: '',
+    pricePerHour: 0,
+    location: '',
+    imageUrl: '',
+  });
   
-  // Sample equipment data
-  const equipmentData: Equipment[] = [
-    {
-      id: '1',
-      name: 'John Deere 5E Series Tractor',
-      category: 'Tractors',
-      description: 'Powerful 75HP tractor ideal for medium to large farms. Includes attachments for plowing.',
-      pricePerHour: 400,
-      pricePerDay: 2500,
-      pricePerWeek: 15000,
-      pricePerMonth: 50000,
-      location: 'Nashik, Maharashtra',
-      rating: 4.8,
-      reviews: 24,
-      image: 'https://images.unsplash.com/photo-1605002123541-539772db692b?q=80&w=800',
-      available: true,
-      owner: 'Raghav Farms',
-      contactNumber: '+91 9876543210'
-    },
-    {
-      id: '2',
-      name: 'CLAAS Harvester',
-      category: 'Harvesters',
-      description: 'High-capacity combine harvester for wheat, rice, and other grain crops.',
-      pricePerHour: 800,
-      pricePerDay: 5000,
-      pricePerWeek: 30000,
-      pricePerMonth: 100000,
-      location: 'Pune, Maharashtra',
-      rating: 4.7,
-      reviews: 18,
-      image: 'https://images.unsplash.com/photo-1591191425088-195b6e978259?q=80&w=800',
-      available: true,
-      owner: 'Singh Agri Services',
-      contactNumber: '+91 9765432109'
-    },
-    {
-      id: '3',
-      name: 'KisanKraft Irrigation System',
-      category: 'Irrigation',
-      description: 'Complete drip irrigation system with controller for 2-acre farms.',
-      pricePerHour: 150,
-      pricePerDay: 800,
-      pricePerWeek: 5000,
-      pricePerMonth: 18000,
-      location: 'Satara, Maharashtra',
-      rating: 4.5,
-      reviews: 32,
-      image: 'https://images.unsplash.com/photo-1629793376581-8f4b9ee14537?q=80&w=800',
-      available: true,
-      owner: 'Modern Agro Solutions',
-      contactNumber: '+91 8890123456'
-    },
-    {
-      id: '4',
-      name: 'Kubota Rotary Tiller',
-      category: 'Tillage',
-      description: 'Heavy-duty tiller for soil preparation with adjustable depth control.',
-      pricePerHour: 200,
-      pricePerDay: 1200,
-      pricePerWeek: 7000,
-      pricePerMonth: 25000,
-      location: 'Kolhapur, Maharashtra',
-      rating: 4.9,
-      reviews: 15,
-      image: 'https://images.unsplash.com/photo-1616631088589-9709e97a9795?q=80&w=800',
-      available: true,
-      owner: 'Patil Brothers',
-      contactNumber: '+91 7765432109'
-    },
-    {
-      id: '5',
-      name: 'AgriDrone X500',
-      category: 'Drones',
-      description: 'Advanced drone with multispectral camera for crop monitoring and spraying.',
-      pricePerHour: 500,
-      pricePerDay: 3000,
-      pricePerWeek: 18000,
-      pricePerMonth: 60000,
-      location: 'Nagpur, Maharashtra',
-      rating: 4.6,
-      reviews: 12,
-      image: 'https://images.unsplash.com/photo-1508444845599-5c89863b1c44?q=80&w=800',
-      available: true,
-      owner: 'TechFarm Solutions',
-      contactNumber: '+91 9912345678'
-    },
-    {
-      id: '6',
-      name: 'Mahindra Novo Seeder',
-      category: 'Seeders',
-      description: 'Precision seeder for row crops with variable rate application.',
-      pricePerHour: 300,
-      pricePerDay: 1800,
-      pricePerWeek: 10000,
-      pricePerMonth: 35000,
-      location: 'Aurangabad, Maharashtra',
-      rating: 4.4,
-      reviews: 9,
-      image: 'https://images.unsplash.com/photo-1598944999410-ea5298c99b65?q=80&w=800',
-      available: true,
-      owner: 'Sharma Equipment Rentals',
-      contactNumber: '+91 8876543210'
-    }
-  ];
-
-  // Get unique categories from equipment data
-  const categories = Array.from(new Set(equipmentData.map(item => item.category)));
+  // Fetch equipment data and categories on component mount
+  useEffect(() => {
+    const fetchEquipmentData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get('/lease-items');
+        console.log("Lease items API response:", response.data);
+        
+        if (response.data.status === 'success' && Array.isArray(response.data.data)) {
+          setEquipmentData(response.data.data);
+        } else {
+          console.error('Invalid data format from API:', response.data);
+          toast.error('Failed to load equipment data: Invalid response format');
+          setEquipmentData([]);
+        }
+      } catch (error) {
+        console.error('Error fetching equipment data:', error);
+        if (axios.isAxiosError(error)) {
+          console.log("Error response:", error.response?.data);
+          console.log("Error status:", error.response?.status);
+        }
+        toast.error('Failed to load equipment data');
+        setEquipmentData([]);
+      }
+      
+      try {
+        const categoriesResponse = await api.get('/lease-items/categories');
+        console.log("Categories API response:", categoriesResponse.data);
+        
+        if (categoriesResponse.data.status === 'success' && Array.isArray(categoriesResponse.data.data)) {
+          setCategories(categoriesResponse.data.data);
+        } else {
+          console.error('Invalid categories format from API:', categoriesResponse.data);
+          toast.error('Failed to load categories: Invalid response format');
+          setCategories([]);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        if (axios.isAxiosError(error)) {
+          console.log("Error response:", error.response?.data);
+          console.log("Error status:", error.response?.status);
+        }
+        toast.error('Failed to load categories');
+        setCategories([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchEquipmentData();
+  }, []);
 
   // Function to handle search
   const handleSearch = () => {
@@ -163,18 +126,136 @@ const LeaseMarketplace: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Function to handle contact owner button click
-  const handleContactOwner = (equipment: Equipment) => {
-    setSelectedEquipment(equipment);
-    setShowContactModal(true);
+  // Function to handle calling the owner
+  const handleCallOwner = (phoneNumber: string | undefined) => {
+    if (!phoneNumber) {
+      console.error('No phone number provided');
+      toast.error("No contact number available");
+      return;
+    }
+    
+    // Trim any whitespace and check if it's empty
+    const cleanNumber = phoneNumber.trim();
+    if (cleanNumber === '') {
+      console.error('Empty phone number provided');
+      toast.error("Contact number is empty");
+      return;
+    }
+
+    console.log(`Attempting to call: ${cleanNumber}`);
+    
+    try {
+      // Create the tel: URI and open it
+      window.location.href = `tel:${cleanNumber}`;
+      
+      // Also log success and show toast
+      console.log(`Phone call initiated to: ${cleanNumber}`);
+      toast.success(`Calling ${cleanNumber}...`);
+    } catch (error) {
+      console.error('Error initiating phone call:', error);
+      toast.error("Could not initiate call");
+    }
   };
 
-  // Function to handle sending message to owner
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success(`Message sent to ${selectedEquipment?.owner}!`);
-    setShowContactModal(false);
+  // Handle input change for new item form
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewItem(prev => ({
+      ...prev,
+      [name]: name === 'pricePerHour' ? parseFloat(value) || 0 : value
+    }));
   };
+
+  // Handle category selection for new item
+  const handleCategorySelect = (value: string) => {
+    setNewItem(prev => ({
+      ...prev,
+      category: value
+    }));
+  };
+
+  // Handle image URL input for new item
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewItem(prev => ({
+      ...prev,
+      imageUrl: e.target.value
+    }));
+  };
+
+  // Function to add a new equipment item
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!newItem.name || !newItem.description || !newItem.category || 
+        !newItem.pricePerHour || !newItem.location || !newItem.imageUrl) {
+      toast.error('Please fill all required fields');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('userToken');
+      
+      console.log("=== Debug Information ===");
+      console.log("User object:", user);
+      console.log("Token from localStorage:", token);
+      
+      if (!token) {
+        toast.error('You must be logged in to add items');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Making API request with token:", token);
+      
+      // Use the api utility which automatically includes the token
+      const response = await api.post(
+        '/lease-items',
+        {
+          name: newItem.name,
+          description: newItem.description,
+          category: newItem.category,
+          pricePerHour: newItem.pricePerHour,
+          location: newItem.location,
+          imageUrl: newItem.imageUrl
+        }
+      );
+      
+      console.log("API response:", response.data);
+      
+      if (response.data.status === 'success') {
+        toast.success('Equipment added successfully!');
+        
+        // Add the new item to the equipment data
+        const addedItem = response.data.data;
+        setEquipmentData(prev => [addedItem, ...prev]);
+        
+        // Reset form and close modal
+        setNewItem({
+          name: '',
+          category: '',
+          description: '',
+          pricePerHour: 0,
+          location: '',
+          imageUrl: '',
+        });
+        setShowAddItemModal(false);
+      }
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      if (axios.isAxiosError(error)) {
+        console.log("Error response:", error.response?.data);
+        console.log("Error status:", error.response?.status);
+        console.log("Error headers:", error.response?.headers);
+      }
+      toast.error('Failed to add equipment. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
 
   return (
     <div className="bg-agriBg min-h-screen w-full">
@@ -194,9 +275,21 @@ const LeaseMarketplace: React.FC = () => {
           {/* Main Content */}
           <div className="col-span-11">
             {/* Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-agrigreen mb-2">Farm Equipment Leasing</h1>
-              <p className="text-gray-600">Rent high-quality agricultural equipment from farmers in your area</p>
+            <div className="mb-6 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-agrigreen mb-2">Farm Equipment Leasing</h1>
+                <p className="text-gray-600">Rent high-quality agricultural equipment from farmers in your area</p>
+              </div>
+              
+              {user && (
+                <Button 
+                  onClick={() => setShowAddItemModal(true)}
+                  className="bg-agrigreen hover:bg-agrigreen-dark"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your Equipment
+                </Button>
+              )}
             </div>
 
             {/* Search Bar and Filters */}
@@ -252,119 +345,213 @@ const LeaseMarketplace: React.FC = () => {
             </div>
 
             {/* Equipment Grid */}
-            <div className="grid grid-cols-4 gap-4">
-              {filteredEquipment.length > 0 ? (
-                filteredEquipment.map(item => (
-                  <Card key={item.id} className="overflow-hidden">
-                    <div className="h-32 overflow-hidden">
-                      <img 
-                        src={item.image} 
-                        alt={item.name} 
-                        className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                    <div className="p-3">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-semibold text-sm">{item.name}</h3>
-                        <div className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          item.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {item.available ? 'Available' : 'Leased'}
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-agrigreen" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-4">
+                {filteredEquipment.length > 0 ? (
+                  filteredEquipment.map(item => (
+                    <Card key={item._id || item.id} className="overflow-hidden">
+                      <div className="h-32 overflow-hidden">
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="font-semibold text-sm">{item.name}</h3>
+                          <div className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            item.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {item.available ? 'Available' : 'Leased'}
+                          </div>
                         </div>
+                        
+                        <div className="flex items-center my-1">
+                          <MapPin className="w-3 h-3 text-gray-500 mr-1" />
+                          <span className="text-xs text-gray-500">{item.location}</span>
+                        </div>
+                        
+                        <div className="flex items-center mb-2">
+                          <Star className="w-3 h-3 text-yellow-500 mr-1" />
+                          <span className="text-xs font-medium">{item.rating || 4.5}</span>
+                          <span className="text-xs text-gray-500 ml-1">({item.reviews || 10})</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs text-gray-600">Hourly Rate:</span>
+                          <span className="font-semibold text-sm text-agrigreen">₹{item.pricePerHour}/hr</span>
+                        </div>
+                        
+                        <Button 
+                          variant="outline" 
+                          className="w-full text-xs h-8 flex items-center justify-center"
+                          onClick={() => handleCallOwner(item.ownerContact)}
+                        >
+                          <Phone className="w-3 h-3 mr-1" />
+                          Call Owner
+                        </Button>
                       </div>
-                      
-                      <div className="flex items-center my-1">
-                        <MapPin className="w-3 h-3 text-gray-500 mr-1" />
-                        <span className="text-xs text-gray-500">{item.location}</span>
-                      </div>
-                      
-                      <div className="flex items-center mb-2">
-                        <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                        <span className="text-xs font-medium">{item.rating}</span>
-                        <span className="text-xs text-gray-500 ml-1">({item.reviews})</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs text-gray-600">Hourly Rate:</span>
-                        <span className="font-semibold text-sm text-agrigreen">₹{item.pricePerHour}/hr</span>
-                      </div>
-                      
-                      <Button 
-                        variant="outline" 
-                        className="w-full text-xs h-8"
-                        onClick={() => handleContactOwner(item)}
-                      >
-                        Contact Owner
-                      </Button>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-4 flex justify-center items-center h-64 bg-white rounded-lg shadow">
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">No equipment found</h3>
+                      <p className="text-gray-500">Try adjusting your search or filters</p>
                     </div>
-                  </Card>
-                ))
-              ) : (
-                <div className="col-span-4 flex justify-center items-center h-64 bg-white rounded-lg shadow">
-                  <div className="text-center">
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">No equipment found</h3>
-                    <p className="text-gray-500">Try adjusting your search or filters</p>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Contact Owner Modal */}
-      {showContactModal && selectedEquipment && (
+      {/* Add Item Modal */}
+      {showAddItemModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
+          <div className="bg-white rounded-lg max-w-lg w-full shadow-xl">
             <div className="relative p-6">
               <button 
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowContactModal(false)}
+                onClick={() => setShowAddItemModal(false)}
               >
                 <X className="w-6 h-6" />
               </button>
               
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-1">Contact Owner</h3>
-                <p className="text-gray-600">{selectedEquipment.name}</p>
+                <h3 className="text-xl font-bold text-gray-800">Add Equipment for Rent</h3>
+                <p className="text-gray-600">Share your equipment with farmers in your area</p>
               </div>
               
-              <div className="flex items-center p-4 bg-gray-50 rounded-lg mb-4">
-                <div className="bg-agrigreen rounded-full p-3 text-white mr-4">
-                  <User className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">{selectedEquipment.owner}</h4>
-                  <div className="flex items-center text-gray-500 mt-1">
-                    <Phone className="w-4 h-4 mr-1" />
-                    <span>{selectedEquipment.contactNumber}</span>
+              <form onSubmit={handleAddItem}>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Equipment Name *</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={newItem.name}
+                      onChange={handleInputChange}
+                      placeholder="e.g., John Deere 5E Tractor"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="category">Category *</Label>
+                    <Select onValueChange={handleCategorySelect}>
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(category => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={newItem.description}
+                      onChange={handleInputChange}
+                      placeholder="Describe your equipment (specifications, condition, etc.)"
+                      required
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="pricePerHour">Hourly Rate (₹) *</Label>
+                      <Input
+                        id="pricePerHour"
+                        name="pricePerHour"
+                        type="number"
+                        value={newItem.pricePerHour || ''}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 350"
+                        required
+                        min="1"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="location">Location *</Label>
+                      <Input
+                        id="location"
+                        name="location"
+                        value={newItem.location}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Pune, Maharashtra"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="imageUrl">Image URL *</Label>
+                    <Input
+                      id="imageUrl"
+                      name="imageUrl"
+                      value={newItem.imageUrl}
+                      onChange={handleImageUrlChange}
+                      placeholder="https://example.com/image.jpg"
+                      required
+                    />
+                    {newItem.imageUrl && (
+                      <div className="mt-2 h-32 rounded-md overflow-hidden">
+                        <img 
+                          src={newItem.imageUrl}
+                          alt="Equipment preview" 
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://via.placeholder.com/300x150?text=Invalid+Image+URL';
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-              
-              <form onSubmit={handleSendMessage}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Message</label>
-                  <textarea 
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-agrigreen focus:outline-none"
-                    rows={4}
-                    placeholder={`Hello, I'm interested in leasing your ${selectedEquipment.name}. Is it available for hourly rental?`}
-                    required
-                  ></textarea>
-                </div>
                 
-                <div className="flex">
+                <div className="mt-6 flex gap-3">
                   <Button
-                    className="bg-agrigreen hover:bg-agrigreen-dark w-full py-2"
-                    type="submit"
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowAddItemModal(false)}
                   >
-                    Send Message
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-agrigreen hover:bg-agrigreen-dark"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        Add Equipment
+                      </>
+                    )}
                   </Button>
                 </div>
-                
-                <p className="text-xs text-gray-500 mt-3 text-center">
-                  Your contact information will be shared when you send a message
-                </p>
               </form>
             </div>
           </div>
