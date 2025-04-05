@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -8,7 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for handling cookies/session
+  withCredentials: false, // Changed to false since Flask backend uses token-based auth
 });
 
 // Add request interceptor to include the token in all requests
@@ -16,7 +16,7 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('userToken');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['x-access-token'] = token;
     }
     return config;
   },
@@ -50,21 +50,20 @@ export interface RegisterData {
 
 export const auth = {
   login: async (credentials: LoginCredentials) => {
-    const response = await api.post('/userview/login/', credentials);
+    const response = await api.post('/users/login', credentials);
     // Store token if it's in the response
     if (response.data.token) {
       localStorage.setItem('userToken', response.data.token);
-    } else {
-      // If no token is returned, create a mock token based on mobile number
-      // This is a temporary solution until the backend provides a proper token
-      const mockToken = btoa(`${credentials.mobileno}:${Date.now()}`);
-      localStorage.setItem('userToken', mockToken);
     }
     return response.data;
   },
 
   register: async (data: RegisterData) => {
-    const response = await api.post('/userview/register/', data);
+    const response = await api.post('/users/register', data);
+    // After registration, try to log in automatically
+    if (response.data.message === 'Registration successful') {
+      await auth.login({ mobileno: data.mobileno, password: data.password });
+    }
     return response.data;
   },
 
@@ -77,11 +76,10 @@ export const auth = {
 
   getCurrentUser: async () => {
     try {
-      // Make sure the token is included in the request
-      const response = await api.get('/users/');
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        // Just return the first user for now (this is not ideal in production)
-        return response.data[0];
+      // Use the profile endpoint to get current user data
+      const response = await api.get('/users/profile');
+      if (response.data) {
+        return response.data;
       }
       return null;
     } catch (error) {

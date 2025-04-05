@@ -77,11 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (mobileno: string, password: string) => {
     try {
       const response = await auth.login({ mobileno, password });
-      if (response.token && response.user) {
-        setUser(response.user);
-        localStorage.setItem('user', JSON.stringify(response.user));
-      } else {
-        // Fallback to get user data if not provided in login response
+      if (response.token) {
+        // After login, get user profile data
         const userData = await auth.getCurrentUser();
         if (userData) {
           setUser(userData);
@@ -97,12 +94,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (fullname: string, mobileno: string, password: string) => {
     try {
       const response = await auth.register({ fullname, mobileno, password });
-      if (response.token && response.user) {
-        setUser(response.user);
-        localStorage.setItem('user', JSON.stringify(response.user));
-      } else {
-        // After registration, log the user in
-        await login(mobileno, password);
+      if (response.message === 'Registration successful') {
+        // Login is handled in the register function in api.ts
+        // Get user profile after registration
+        const userData = await auth.getCurrentUser();
+        if (userData) {
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);

@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from db import users_collection
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 
 # Middleware for token-based authentication
