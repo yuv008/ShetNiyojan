@@ -13,7 +13,6 @@ import pickle as pkl
 from plant_disease_model import predict_disease
 from flask_cors import CORS
 import os
-import datetime
 from bson.objectid import ObjectId
 
 base_dir  = os.path.dirname(os.path.abspath(__file__))
@@ -225,7 +224,7 @@ def create_yield():
             "acres": float(data.get('acres')),
             "status": "planning",
             "userId": user["_id"],
-            "createdAt": datetime.datetime.now()
+            "createdAt": datetime.now()
         }
         
         # Insert into database
@@ -271,7 +270,7 @@ def update_yield(current_user, yield_id):
             update_data['plantDate'] = data['plantDate']
             
         # Add updatedAt timestamp
-        update_data['updatedAt'] = datetime.datetime.now()
+        update_data['updatedAt'] = datetime.now()
         
         # Update in database
         yields_collection.update_one(
