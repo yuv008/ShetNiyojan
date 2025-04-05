@@ -11,6 +11,7 @@ import YieldDetails from './pages/YieldDetails';
 import CropPrediction from "./components/CropPrediction";
 import CropHealthMonitoring from "./components/CropHealthMonitoring";
 import CurrentYields from './components/dashboard/CurrentYields';
+import ChatBot from './components/ChatBot';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster position="top-right" />
+        <ChatBot />
       </AuthProvider>
     </Router>
   );
