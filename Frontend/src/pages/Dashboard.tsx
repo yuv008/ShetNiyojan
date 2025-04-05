@@ -150,6 +150,14 @@ const Dashboard = () => {
     navigate('/marketplace');
   };
 
+  const handleNavigateToLeaseMarketPlace = () => {
+    navigate('/leasemarket');
+  };
+
+  const handleNavigateToSupplyChain = () => {
+    navigate('/supply-chain');
+  };
+
   return (
     <div className="bg-agriBg min-h-screen w-full">
       <div className="w-full h-full p-4">
@@ -294,13 +302,16 @@ const Dashboard = () => {
                   </Card>
 
                   {/* Supply Chain Management */}
-                  <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+                  <Card 
+                    className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                    onClick={handleNavigateToSupplyChain}
+                  >
                     <div className="flex flex-col items-center text-center">
                       <div className="bg-purple-500/10 p-4 rounded-full mb-3">
                         <Clock className="w-8 h-8 text-purple-500" />
                       </div>
                       <h3 className="font-medium text-base mb-1">Supply Chain</h3>
-                      <p className="text-xs text-muted-foreground">Order tracking & logistics</p>
+                      <p className="text-xs text-muted-foreground">Transport optimization & logistics</p>
                     </div>
                     <div className="absolute top-2 right-2">
                       <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
@@ -308,7 +319,9 @@ const Dashboard = () => {
                   </Card>
 
                   {/* Lease Marketplace */}
-                  <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+                  <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                   onClick={handleNavigateToLeaseMarketPlace}
+                  >
                     <div className="flex flex-col items-center text-center">
                       <div className="bg-pink-500/10 p-4 rounded-full mb-3">
                         <MapPin className="w-8 h-8 text-pink-500" />

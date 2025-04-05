@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import json
@@ -15,12 +15,49 @@ from plant_disease_model import predict_disease
 from flask_cors import CORS
 import os
 from bson.objectid import ObjectId
+import random
+import requests
+from urllib.parse import urlencode
+import logging
+from typing import Dict, List, Optional, Any
+from collections import defaultdict
+from haversine import haversine
+import json
 
 base_dir  = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = "uploads"
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Set up logging for transport optimizer
+transport_logger = logging.getLogger("transport_optimizer")
+file_handler = logging.FileHandler("transport_optimizer.log")
+file_handler.setLevel(logging.INFO)
+transport_logger.addHandler(file_handler)
+transport_logger.setLevel(logging.INFO)
+
+# Mandi API Configuration
+MANDI_API_BASE_URL = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+MANDI_API_KEY = "579b464db66ec23bdd000001f5a25a2a2b0742cb77a83bfe30e97ba1" 
+
+# Simulated city data with coordinates (latitude, longitude)
+city_data = {
+    "Mumbai": (19.0760, 72.8777),
+    "Delhi": (28.7041, 77.1025),
+    "Bangalore": (12.9716, 77.5946),
+    "Chennai": (13.0827, 80.2707),
+    "Kolkata": (22.5726, 88.3639)
+}
+
+# Map city names to their corresponding states for API filtering
+city_to_state = {
+    "Mumbai": "Maharashtra",
+    "Delhi": "NCT of Delhi",
+    "Bangalore": "Karnataka",
+    "Chennai": "Tamil Nadu",
+    "Kolkata": "West Bengal"
+}
 
 # ------------------ Token Middleware ------------------
 def token_required(f):
@@ -163,6 +200,41 @@ def plant_disease_analysis():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ------------------ Crop Recommendation ------------------
+@app.route('/api/crop-recommendation', methods=['POST'])
+@token_required
+def crop_recommendation(current_user):
+    REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+
+    # Validate input JSON
+    data = request.get_json()
+    missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
+    if missing_fields:
+        return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
+
+    try:
+        # Load models (open the file first, then pass to pickle.load)
+        model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
+        scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
+
+        with open(model_path, 'rb') as f:
+            crop_recommend_model = pkl.load(f)
+
+        with open(scaler_path, 'rb') as f:
+            crop_scaler = pkl.load(f)
+
+        # Prepare and scale input data
+        df = pd.DataFrame([data])
+        scaled_data = crop_scaler.transform(df)
+
+        # Predict
+        prediction = crop_recommend_model.predict(scaled_data)[0]
+        return jsonify({'recommended_crop': prediction}), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ------------------ Yield Management ------------------
 @app.route('/api/yields', methods=['GET'])

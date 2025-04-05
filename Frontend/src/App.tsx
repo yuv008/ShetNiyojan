@@ -14,6 +14,8 @@ import CropHealthMonitoring from "./components/CropHealthMonitoring";
 import CurrentYields from './components/dashboard/CurrentYields';
 import ChatBot from './components/ChatBot';
 import Marketplace from './components/Marketplace';
+import LeaseMarketplace from './pages/LeaseMarketPlace';
+import SupplyChain from './components/SupplyChain';
 
 function App() {
   return (
@@ -27,20 +29,30 @@ function App() {
             <Route path="/register" element={<Register />} />
            
 
-            {/* Protected routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/yield/*" element={
-              <ProtectedRoute>
-                <YieldDetails />
-              </ProtectedRoute>
-            } />
-            <Route path="/crop-prediction" element={<CropPrediction />} />
-            <Route path="/crop-health" element={<CropHealthMonitoring />} />
-            <Route path="/marketplace" element={<Marketplace />} />
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/leasemarket" element={
+            <ProtectedRoute>
+              <LeaseMarketplace />
+            </ProtectedRoute>
+          } />
+          <Route path="/supply-chain" element={
+            <ProtectedRoute>
+              <SupplyChain />
+            </ProtectedRoute>
+          } />
+          <Route path="/yield/*" element={
+            <ProtectedRoute>
+              <YieldDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/crop-prediction" element={<CropPrediction />} />
+          <Route path="/crop-health" element={<CropHealthMonitoring />} />
+          <Route path="/marketplace" element={<Marketplace />} />
 
             {/* Catch all route */}
             <Route path="*" element={<NotFound />} />

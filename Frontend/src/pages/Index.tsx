@@ -12,6 +12,7 @@ import LanguageSelector from '@/components/common/LanguageSelector';
 import logoImage from '@/assets/logo.png';
 import dashboardImage from '@/assets/dashbaord.png';
 
+
 // Export the images so they can be imported in other components
 export const images = {
   logo: logoImage,
