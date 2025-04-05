@@ -1,6 +1,10 @@
 # ShetNiyojan
 
-ShetNiyojan is an Agricultural Project Management System that helps farmers and agricultural organizations manage their projects efficiently.
+ShetNiyojan is an intelligent agricultural management system that helps farmers make data-driven decisions for optimal crop management and disease detection.
+
+## Project Overview
+
+ShetNiyojan combines modern frontend technologies with machine learning powered backend to provide farmers with valuable insights for agricultural planning and management.
 
 ## Project Structure
 
@@ -8,13 +12,31 @@ The project is divided into two main parts:
 
 ### Frontend
 - Built with React + TypeScript + Vite
-- Uses Shadcn UI components
+- Uses Tailwind CSS and Shadcn UI components
+- Responsive design for all devices
 - Located in the `Frontend` directory
 
 ### Backend
-- Built with Django REST Framework
-- Provides RESTful API endpoints
+- Built with Flask and Python
+- MongoDB database integration
+- Machine learning models for crop recommendation and disease detection
+- Groq Vision API integration for plant disease analysis
 - Located in the `Backend` directory
+
+## Features
+
+- **User Authentication**: Secure login and registration system
+- **Dashboard**: Centralized view of agricultural metrics and insights
+- **Crop Health Monitoring**: 
+  - Upload plant images for disease detection
+  - AI-powered analysis of plant diseases
+  - Detailed recommendations for treatment
+- **Crop Recommendation**:
+  - Soil composition analysis
+  - Climate-based crop suggestions
+  - Detailed growing recommendations
+- **Yield Prediction**: Forecast potential harvest amounts based on historical data
+- **Task Management**: Schedule and track agricultural activities
 
 ## Getting Started
 
@@ -54,44 +76,49 @@ The project is divided into two main parts:
    pip install -r requirements.txt
    ```
 
-4. Run migrations:
+4. Set up environment variables (see `.env.example` for required variables)
+
+5. Start the backend server:
    ```bash
-   python manage.py migrate
+   python app.py
    ```
-
-5. Create superuser:
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-6. Start the development server:
-   ```bash
-   python manage.py runserver
-   ```
-
-## Features
-- User Authentication
-- Task Management
-- Project Tracking
-- User Management
-- Admin Dashboard
-
-## Contributing
-Please read our contributing guidelines before submitting pull requests.
-
-## License
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## API Endpoints
 
-- `/api/tasks/` - Task CRUD operations
-- `/api/users/` - User list (read-only)
-- `/api/auth/` - Authentication endpoints
-- `/admin/` - Admin panel
+### Authentication
+- `POST /api/users/register`: Register a new user
+- `POST /api/users/login`: Authenticate user and get token
+- `GET /api/users/profile`: Get current user profile
 
-## Authentication
+### Plant Disease Analysis
+- `POST /api/plant-disease-analysis`: Upload plant image for disease detection
 
-This API uses Django REST Framework's session authentication and basic authentication.
-You can authenticate:
-1. Via the browsable API at `/api/auth/login/`
-2. Using Basic Authentication for API requests 
+### Crop Recommendation
+- `POST /api/crop-recommendation`: Get crop recommendations based on soil and climate data
+
+## Technologies Used
+
+### Frontend
+- React 18 with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
+- Shadcn UI component library
+- Axios for API communication
+
+### Backend
+- Flask for API development
+- MongoDB for database
+- Python for backend logic
+- Machine Learning models for predictions
+- Groq API for AI image analysis
+
+## Requirements
+
+- Node.js 16+
+- Python 3.8+
+- MongoDB
+- Groq API key for plant disease detection
+
+## License
+
+This project is licensed under the MIT License. 
