@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
@@ -7,6 +8,7 @@ import Solutions from '@/components/Solutions';
 import Testimonials from '@/components/Testimonials';
 import CallToAction from '@/components/CallToAction';
 import Footer from '@/components/Footer';
+import LanguageSelector from '@/components/common/LanguageSelector';
 import logoImage from '@/assets/logo.png';
 import dashboardImage from '@/assets/dashbaord.png';
 
@@ -49,6 +51,13 @@ const Index = () => {
       <Testimonials />
       <CallToAction />
       <Footer logo={logoImage} />
+      
+      {/* Floating language selector */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="bg-white p-2 rounded-lg shadow-lg">
+          <LanguageSelector />
+        </div>
+      </div>
     </div>
   );
 };

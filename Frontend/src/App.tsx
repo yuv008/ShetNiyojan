@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './lib/auth-context';
+import { TranslatorProvider } from './lib/translator-context';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -19,12 +20,13 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-         
+        <TranslatorProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+           
 
           {/* Protected routes */}
           <Route path="/dashboard" element={
@@ -46,11 +48,12 @@ function App() {
           <Route path="/crop-health" element={<CropHealthMonitoring />} />
           <Route path="/marketplace" element={<Marketplace />} />
 
-          {/* Catch all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster position="top-right" />
-        <ChatBot />
+            {/* Catch all route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster position="top-right" />
+          <ChatBot />
+        </TranslatorProvider>
       </AuthProvider>
     </Router>
   );

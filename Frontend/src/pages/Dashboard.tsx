@@ -17,6 +17,7 @@ import DashboardHeader from "@/components/common/DashboardHeader";
 import CurrentYields from '../components/dashboard/CurrentYields';
 import { yields as yieldsApi, auth, YieldData } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import LanguageSelector from "@/components/common/LanguageSelector";
 
 // Define the Yield type
 interface Yield {
@@ -405,6 +406,13 @@ const Dashboard = () => {
             onSubmit={handleAddYield}
           />
         )}
+
+        {/* Floating language selector */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="bg-white p-2 rounded-lg shadow-lg">
+            <LanguageSelector />
+          </div>
+        </div>
       </div>
     </div>
   );

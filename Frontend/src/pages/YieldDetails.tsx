@@ -24,6 +24,7 @@ import { useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import LanguageSelector from "@/components/common/LanguageSelector";
 
 interface YieldDetailsProps {
   id?: string;
@@ -998,6 +999,13 @@ const YieldDetails = () => {
               </>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Floating language selector */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="bg-white p-2 rounded-lg shadow-lg">
+          <LanguageSelector />
         </div>
       </div>
     </div>
