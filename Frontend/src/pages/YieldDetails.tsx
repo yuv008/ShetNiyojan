@@ -542,34 +542,34 @@ const YieldDetails = () => {
       }
       
       // Map the Gemini formatted data to our form structure
-      const formData = {
+    const formData = {
         type: formattedData.activity_type ? 
               formattedData.activity_type.charAt(0).toUpperCase() + formattedData.activity_type.slice(1) : '',
         name: formattedData.activity_name || '',
         expense: formattedData.amount ? formattedData.amount.toString() : '0',
         summary: formattedData.summary || text, // Fallback to original transcript if no summary
-        isExpense: true,
-        fertilizer: {
+      isExpense: true,
+      fertilizer: {
           name: formattedData.fertilizer_name || '',
           quantity: formattedData.quantity || '',
-          billImage: null
-        },
-        pesticide: {
+        billImage: null
+      },
+      pesticide: {
           name: formattedData.pesticide_name || '',
           quantity: formattedData.quantity || '',
-          billImage: null
-        },
-        financial: {
+        billImage: null
+      },
+      financial: {
           category: formattedData.financial_category || '',
           paymentMethod: formattedData.payment_method || '',
-          receiptImage: null
-        }
-      };
-      
-      // Set the form data and show the form
-      setFormDataFromSpeech(formData);
-      setShowActivityForm(true);
-      
+        receiptImage: null
+      }
+    };
+    
+    // Set the form data and show the form
+    setFormDataFromSpeech(formData);
+    setShowActivityForm(true);
+    
     } catch (error) {
       console.error("Error processing voice input with Gemini:", error);
       toast({
@@ -578,10 +578,10 @@ const YieldDetails = () => {
         variant: "destructive"
       });
     } finally {
-      // Reset recording states
-      setTranscript("");
-      setProcessingVoice(false);
-      setRecording(false);
+    // Reset recording states
+    setTranscript("");
+    setProcessingVoice(false);
+    setRecording(false);
     }
   };
 
@@ -596,13 +596,13 @@ const YieldDetails = () => {
     }
 
     try {
-      // Format the date and ensure values are correct types
-      const formattedData = {
-        ...data,
-        expense: parseFloat(data.expense) || 0,
-        date: new Date().toLocaleString()
-      };
-      
+    // Format the date and ensure values are correct types
+    const formattedData = {
+      ...data,
+      expense: parseFloat(data.expense) || 0,
+      date: new Date().toLocaleString()
+    };
+    
       // Get mobile number for the API request
       const mobileNo = getUserMobileNumber();
       
@@ -652,39 +652,39 @@ const YieldDetails = () => {
         console.log("Activity added successfully:", response.data);
         
         // Create a clean activity object with just the needed properties for UI
-        const newActivity: Activity = {
-          type: formattedData.type,
-          name: formattedData.name,
-          expense: expenseValue,
-          date: formattedData.date,
-          summary: formattedData.summary
-        };
-        
-        // Add specific properties based on activity type
-        if (formattedData.type === "Fertilizer" && formattedData.fertilizer) {
-          newActivity.fertilizer = formattedData.fertilizer;
-        } else if (formattedData.type === "Pesticide" && formattedData.pesticide) {
-          newActivity.pesticide = formattedData.pesticide;
-        } else if (formattedData.type === "Financial" && formattedData.financial) {
-          newActivity.financial = formattedData.financial;
-        }
-        
+    const newActivity: Activity = {
+      type: formattedData.type,
+      name: formattedData.name,
+      expense: expenseValue,
+      date: formattedData.date,
+      summary: formattedData.summary
+    };
+    
+    // Add specific properties based on activity type
+    if (formattedData.type === "Fertilizer" && formattedData.fertilizer) {
+      newActivity.fertilizer = formattedData.fertilizer;
+    } else if (formattedData.type === "Pesticide" && formattedData.pesticide) {
+      newActivity.pesticide = formattedData.pesticide;
+    } else if (formattedData.type === "Financial" && formattedData.financial) {
+      newActivity.financial = formattedData.financial;
+    }
+    
         // Update the yield data in the UI
-        setYieldData(prevData => {
-          const updatedActivities = [...prevData.activityList, newActivity];
-          // Calculate total expense (positive for expenses, negative for income)
-          const totalExpense = updatedActivities.reduce((sum, act) => {
-            return sum + (act.expense || 0);
-          }, 0);
-          
-          return {
-            ...prevData,
-            activityList: updatedActivities,
-            activities: updatedActivities.length,
-            expense: totalExpense
-          };
-        });
-        
+    setYieldData(prevData => {
+      const updatedActivities = [...prevData.activityList, newActivity];
+      // Calculate total expense (positive for expenses, negative for income)
+      const totalExpense = updatedActivities.reduce((sum, act) => {
+        return sum + (act.expense || 0);
+      }, 0);
+      
+      return {
+        ...prevData,
+        activityList: updatedActivities,
+        activities: updatedActivities.length,
+        expense: totalExpense
+      };
+    });
+    
         toast({
           title: "Success",
           description: "Activity added successfully",
@@ -699,8 +699,8 @@ const YieldDetails = () => {
       });
     } finally {
       // Reset form state
-      setShowActivityForm(false);
-      setFormDataFromSpeech(null);
+    setShowActivityForm(false);
+    setFormDataFromSpeech(null);
     }
   };
 
@@ -789,212 +789,212 @@ const YieldDetails = () => {
               </div>
             ) : (
               <>
-                <div className="mb-6 flex justify-between items-center">
+            <div className="mb-6 flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold mb-2">{yieldData.name}</h1>
+                <div className="flex items-center gap-2">
+                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                    {yieldData.type}
+                  </span>
+                  <span className={`${status === "Active" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"} px-3 py-1 rounded-full text-sm`}>
+                    {status}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={toggleStatus} 
+                  className="flex items-center gap-1"
+                >
+                  <ToggleLeft className="h-5 w-5" />
+                  Mark {status === "Active" ? "Inactive" : "Active"}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={openFinancialAnalytics}
+                  className="flex items-center gap-1"
+                >
+                  <PieChart className="h-5 w-5" />
+                  Financial Analytics
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <Card className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <Leaf className="h-5 w-5 text-green-600" />
+                  </div>
                   <div>
-                    <h1 className="text-2xl font-bold mb-2">{yieldData.name}</h1>
-                    <div className="flex items-center gap-2">
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                        {yieldData.type}
-                      </span>
-                      <span className={`${status === "Active" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"} px-3 py-1 rounded-full text-sm`}>
-                        {status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={toggleStatus} 
-                      className="flex items-center gap-1"
-                    >
-                      <ToggleLeft className="h-5 w-5" />
-                      Mark {status === "Active" ? "Inactive" : "Active"}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={openFinancialAnalytics}
-                      className="flex items-center gap-1"
-                    >
-                      <PieChart className="h-5 w-5" />
-                      Financial Analytics
-                    </Button>
+                    <h3 className="text-2xl font-bold">{yieldData.daysRemain}</h3>
+                    <p className="text-sm text-gray-600">{yieldData.description}</p>
                   </div>
                 </div>
+              </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-green-100 p-2 rounded-full">
-                        <Leaf className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold">{yieldData.daysRemain}</h3>
-                        <p className="text-sm text-gray-600">{yieldData.description}</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-purple-100 p-2 rounded-full">
-                        <DollarSign className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold">₹{yieldData.expense}</h3>
-                        <p className="text-sm text-gray-600">This Yield</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-blue-100 p-2 rounded-full">
-                        <CheckSquare className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold">{yieldData.activities}</h3>
-                        <p className="text-sm text-gray-600">Activities</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-orange-100 p-2 rounded-full">
-                        <Activity className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold">{status}</h3>
-                        <p className="text-sm text-gray-600">Yield Status</p>
-                      </div>
-                    </div>
-                  </Card>
+              <Card className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-100 p-2 rounded-full">
+                    <DollarSign className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">₹{yieldData.expense}</h3>
+                    <p className="text-sm text-gray-600">This Yield</p>
+                  </div>
                 </div>
+              </Card>
 
-                {/* Speech Recognition Status Display */}
-                {recording && (
-                  <Card className="p-4 mb-4 border-2 border-blue-400">
-                    <div>
-                      <h3 className="text-lg font-semibold flex items-center">
-                        <Mic className="h-5 w-5 text-red-600 mr-2 animate-pulse" />
-                        {processingVoice ? "Processing..." : `Recording... ${countdown}s`}
-                      </h3>
-                      {transcript && (
-                        <p className="mt-2 text-gray-700">{transcript}</p>
-                      )}
-                    </div>
-                  </Card>
-                )}
-
-                <Card className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold">Activities</h2>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => {
-                          setFormDataFromSpeech(null);
-                          setShowActivityForm(true);
-                        }} 
-                        className="flex items-center gap-1"
-                      >
-                        <span>+</span> Add New Entry
-                      </Button>
-                      <Button 
-                        onClick={startRecording}
-                        disabled={recording || showActivityForm}
-                        className="flex items-center gap-1"
-                      >
-                        <Mic className="h-5 w-5" />
-                        Voice Input
-                      </Button>
-                    </div>
+              <Card className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <CheckSquare className="h-5 w-5 text-blue-600" />
                   </div>
-
-                  <div className="space-y-4">
-                    {yieldData.activityList.map((activity, index) => (
-                      <Card key={index} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="bg-gray-100 p-1.5 rounded">
-                                {getActivityIcon(activity.type)}
-                              </div>
-                              <span className={`px-2 py-1 rounded text-sm ${
-                                activity.type === "Cultivation" ? "bg-orange-100 text-orange-800" :
-                                activity.type === "Sowing" ? "bg-green-100 text-green-800" :
-                                activity.type === "Fertilizer" ? "bg-purple-100 text-purple-800" :
-                                activity.type === "Pesticide" ? "bg-red-100 text-red-800" :
-                                activity.type === "Irrigation" ? "bg-blue-100 text-blue-800" :
-                                activity.type === "Harvesting" ? "bg-yellow-100 text-yellow-800" :
-                                activity.type === "Financial" ? "bg-green-100 text-green-800" :
-                                "bg-gray-100 text-gray-800"
-                              }`}>
-                                {activity.type}
-                              </span>
-                              <span className="text-gray-500 text-sm">{activity.date}</span>
-                            </div>
-                            <h3 className="font-medium">{activity.name}</h3>
-                            {activity.summary && (
-                              <p className="text-sm text-gray-600 mt-1">{activity.summary}</p>
-                            )}
-                            {activity.type === "Fertilizer" && activity.fertilizer && (
-                              <div className="mt-2 text-sm text-gray-600">
-                                <p>Fertilizer: {activity.fertilizer.name}</p>
-                                <p>Quantity: {activity.fertilizer.quantity}</p>
-                                {activity.fertilizer.billImage && (
-                                  <div className="mt-2">
-                                    <a href="#" className="text-blue-600 hover:underline">
-                                      View Bill Image
-                                    </a>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {activity.type === "Pesticide" && activity.pesticide && (
-                              <div className="mt-2 text-sm text-gray-600">
-                                <p>Pesticide: {activity.pesticide.name}</p>
-                                <p>Quantity: {activity.pesticide.quantity}</p>
-                                {activity.pesticide.billImage && (
-                                  <div className="mt-2">
-                                    <a href="#" className="text-blue-600 hover:underline">
-                                      View Bill Image
-                                    </a>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {activity.type === "Financial" && activity.financial && (
-                              <div className="mt-2 text-sm text-gray-600">
-                                <p>Category: {activity.financial.category}</p>
-                                <p>Payment Method: {activity.financial.paymentMethod}</p>
-                                {activity.financial.receiptImage && (
-                                  <div className="mt-2">
-                                    <a href="#" className="text-blue-600 hover:underline">
-                                      View Receipt
-                                    </a>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <span className="text-lg font-semibold">₹{activity.expense}</span>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
+                  <div>
+                    <h3 className="text-2xl font-bold">{yieldData.activities}</h3>
+                    <p className="text-sm text-gray-600">Activities</p>
                   </div>
-                </Card>
+                </div>
+              </Card>
 
-                {showActivityForm && (
-                  <ActivityForm
-                    onClose={() => {
-                      setShowActivityForm(false);
+              <Card className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-100 p-2 rounded-full">
+                    <Activity className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold">{status}</h3>
+                    <p className="text-sm text-gray-600">Yield Status</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Speech Recognition Status Display */}
+            {recording && (
+              <Card className="p-4 mb-4 border-2 border-blue-400">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <Mic className="h-5 w-5 text-red-600 mr-2 animate-pulse" />
+                    {processingVoice ? "Processing..." : `Recording... ${countdown}s`}
+                  </h3>
+                  {transcript && (
+                    <p className="mt-2 text-gray-700">{transcript}</p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            <Card className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Activities</h2>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => {
                       setFormDataFromSpeech(null);
-                    }}
-                    onSubmit={handleAddActivity}
-                    audioData={formDataFromSpeech}
-                  />
+                      setShowActivityForm(true);
+                    }} 
+                    className="flex items-center gap-1"
+                  >
+                    <span>+</span> Add New Entry
+                  </Button>
+                  <Button 
+                    onClick={startRecording}
+                    disabled={recording || showActivityForm}
+                    className="flex items-center gap-1"
+                  >
+                    <Mic className="h-5 w-5" />
+                    Voice Input
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {yieldData.activityList.map((activity, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="bg-gray-100 p-1.5 rounded">
+                            {getActivityIcon(activity.type)}
+                          </div>
+                          <span className={`px-2 py-1 rounded text-sm ${
+                            activity.type === "Cultivation" ? "bg-orange-100 text-orange-800" :
+                            activity.type === "Sowing" ? "bg-green-100 text-green-800" :
+                            activity.type === "Fertilizer" ? "bg-purple-100 text-purple-800" :
+                            activity.type === "Pesticide" ? "bg-red-100 text-red-800" :
+                            activity.type === "Irrigation" ? "bg-blue-100 text-blue-800" :
+                            activity.type === "Harvesting" ? "bg-yellow-100 text-yellow-800" :
+                            activity.type === "Financial" ? "bg-green-100 text-green-800" :
+                            "bg-gray-100 text-gray-800"
+                          }`}>
+                            {activity.type}
+                          </span>
+                          <span className="text-gray-500 text-sm">{activity.date}</span>
+                        </div>
+                        <h3 className="font-medium">{activity.name}</h3>
+                        {activity.summary && (
+                          <p className="text-sm text-gray-600 mt-1">{activity.summary}</p>
+                        )}
+                        {activity.type === "Fertilizer" && activity.fertilizer && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>Fertilizer: {activity.fertilizer.name}</p>
+                            <p>Quantity: {activity.fertilizer.quantity}</p>
+                            {activity.fertilizer.billImage && (
+                              <div className="mt-2">
+                                <a href="#" className="text-blue-600 hover:underline">
+                                  View Bill Image
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {activity.type === "Pesticide" && activity.pesticide && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>Pesticide: {activity.pesticide.name}</p>
+                            <p>Quantity: {activity.pesticide.quantity}</p>
+                            {activity.pesticide.billImage && (
+                              <div className="mt-2">
+                                <a href="#" className="text-blue-600 hover:underline">
+                                  View Bill Image
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {activity.type === "Financial" && activity.financial && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>Category: {activity.financial.category}</p>
+                            <p>Payment Method: {activity.financial.paymentMethod}</p>
+                            {activity.financial.receiptImage && (
+                              <div className="mt-2">
+                                <a href="#" className="text-blue-600 hover:underline">
+                                  View Receipt
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-semibold">₹{activity.expense}</span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </Card>
+
+            {showActivityForm && (
+              <ActivityForm
+                onClose={() => {
+                  setShowActivityForm(false);
+                  setFormDataFromSpeech(null);
+                }}
+                onSubmit={handleAddActivity}
+                audioData={formDataFromSpeech}
+              />
                 )}
               </>
             )}

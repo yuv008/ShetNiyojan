@@ -431,6 +431,74 @@ def get_activities():
 
     return jsonify({"activities": activities}), 200
 
+# ------------------ Chatbot API ------------------
+@app.route('/api/chat', methods=['POST'])
+def chatbot():
+    try:
+        data = request.json
+        user_input = data.get('message', '')
+        model = data.get('model', 'llama-3.3-70b-versatile')
+        temperature = float(data.get('temperature', 0.7))
+        max_tokens = int(data.get('max_tokens', 400))
+        
+        if not user_input:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        # Initialize Groq client with API key
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        # Create the chat prompt with HTML formatting instructions and emphasis on brevity
+        prompt = f"""
+        As a helpful agricultural assistant, please respond to the following query: 
+        
+        {user_input}
+        
+        IMPORTANT INSTRUCTIONS:
+        1. Be VERY CONCISE - limit your response to 3-4 short paragraphs maximum
+        2. Focus only on the most relevant information
+        3. Use simple, direct language
+        4. Format using HTML for readability
+        
+        Use these HTML tags sparingly:
+        - <h3> for a single main heading
+        - <p> for paragraphs (keep them short)
+        - <ul> with <li> for key points (limit to 3-5 items max)
+        - <strong> for emphasis (use minimally)
+        
+        Do not include opening/closing HTML, body, or head tags - just the content HTML.
+        """
+        
+        # Make the chat completion request
+        chat_completion = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a knowledgeable agricultural assistant. Provide BRIEF, CONCISE responses focused on farming practices. Format with minimal HTML for readability. Never exceed 400 tokens."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=temperature,
+            max_completion_tokens=max_tokens,
+            top_p=1,
+            stop=None,
+            stream=False
+        )
+        
+        # Extract the response
+        response = chat_completion.choices[0].message.content.strip()
+        
+        return jsonify({'response': response}), 200
+        
+    except Exception as e:
+        print(f"Error in chatbot API: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 # ------------------ Run App ------------------
 if __name__ == '__main__':
     app.run(debug=True)
