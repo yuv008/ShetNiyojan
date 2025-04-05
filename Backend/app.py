@@ -7,6 +7,7 @@ from db import users_collection, yields_collection, activities_collection, db
 from groq import Groq
 from decouple import config
 import pandas as pd
+import joblib
 import numpy as np
 from datetime import datetime
 from bson import ObjectId
@@ -228,38 +229,38 @@ def plant_disease_analysis():
 
 
 # ------------------ Crop Recommendation ------------------
-@app.route('/api/crop-recommendation', methods=['POST'])
-@token_required
-def crop_recommendation(current_user):
-    REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+# @app.route('/api/crop-recommendation', methods=['POST'])
+# @token_required
+# def crop_recommendation(current_user):
+#     REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
 
-    # Validate input JSON
-    data = request.get_json()
-    missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
-    if missing_fields:
-        return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
+#     # Validate input JSON
+#     data = request.get_json()
+#     missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
+#     if missing_fields:
+#         return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
 
-    try:
-        # Load models (open the file first, then pass to pickle.load)
-        model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
-        scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
+#     try:
+#         # Load models (open the file first, then pass to pickle.load)
+#         model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
+#         scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
 
-        with open(model_path, 'rb') as f:
-            crop_recommend_model = pkl.load(f)
+#         with open(model_path, 'rb') as f:
+#             crop_recommend_model = pkl.load(f)
 
-        with open(scaler_path, 'rb') as f:
-            crop_scaler = pkl.load(f)
+#         with open(scaler_path, 'rb') as f:
+#             crop_scaler = pkl.load(f)
 
-        # Prepare and scale input data
-        df = pd.DataFrame([data])
-        scaled_data = crop_scaler.transform(df)
+#         # Prepare and scale input data
+#         df = pd.DataFrame([data])
+#         scaled_data = crop_scaler.transform(df)
 
-        # Predict
-        prediction = crop_recommend_model.predict(scaled_data)[0]
-        return jsonify({'recommended_crop': prediction}), 201
+#         # Predict
+#         prediction = crop_recommend_model.predict(scaled_data)[0]
+#         return jsonify({'recommended_crop': prediction}), 201
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
 
 # ------------------ Yield Management ------------------
 @app.route('/api/yields', methods=['GET'])
@@ -1546,6 +1547,202 @@ def seed_demo_data():
         print(f"Error seeding demo data: {str(e)}")
         import traceback
         traceback.print_exc()
+
+#  Get Groq API key from environment variables
+GROQ_API_KEY = config('GROQ_API_KEY')
+
+# Load the model
+try:
+    model = joblib.load("./models/adaboost_model_soil.pkl")
+    print("Model loaded successfully")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    model = None
+
+# Function to get insights from Groq
+def get_groq_insights(soil_params, soil_type, location, land_area, model_name="llama3-70b-8192"):
+    # Create a prompt for Groq
+    prompt = f"""
+    As an agricultural expert, provide detailed insights and recommendations based on the following soil analysis:
+    
+    Location: {location}
+    Land Area: {land_area} hectares
+    Soil Type: {soil_type}
+    
+    Soil Parameters:
+    - Nitrogen: {soil_params['N']} kg/ha
+    - Phosphorus: {soil_params['P']} kg/ha
+    - Potassium: {soil_params['K']} kg/ha
+    - Temperature: {soil_params['temperature']}°C
+    - Humidity: {soil_params['humidity']}%
+    - pH: {soil_params['ph']}
+    - Rainfall: {soil_params['rainfall']} mm/month
+    
+    Please provide:
+    1. Top 3 most suitable crops with brief explanations
+    2. Estimated yield potential for each recommended crop
+    3. Specific farming recommendations (planting time, irrigation needs, fertilizer suggestions)
+    4. Any soil health concerns and improvement strategies
+    5. Sustainable farming practices that would work well with this soil profile
+    
+    Format your response as JSON with the following structure:
+    {{
+        "top_crops": [
+            {{"name": "Crop1", "suitability": "95%", "water_requirement": "High/Medium/Low", "growth_period": "X-Y months"}},
+            {{"name": "Crop2", "suitability": "87%", "water_requirement": "High/Medium/Low", "growth_period": "X-Y months"}},
+            {{"name": "Crop3", "suitability": "79%", "water_requirement": "High/Medium/Low", "growth_period": "X-Y months"}}
+        ],
+        "best_crop": {{
+            "name": "Crop1",
+            "confidence": "95%",
+            "environmental_suitability": "Excellent/Good/Moderate",
+            "estimated_yield": "X-Y tons/hectare",
+            "recommendation": "Brief planting and care recommendation"
+        }},
+        "soil_health": {{
+            "status": "Excellent/Good/Needs improvement",
+            "concerns": ["Concern1", "Concern2"],
+            "improvement_strategies": ["Strategy1", "Strategy2", "Strategy3"]
+        }},
+        "sustainable_practices": ["Practice1", "Practice2", "Practice3"]
+    }}
+    """
+    
+    try:
+        # Prepare the API request for Groq
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": "You are an expert agricultural advisor with deep knowledge of soil science, crop selection, and sustainable farming practices."},
+                {"role": "user", "content": prompt}
+            ],
+            "response_format": {"type": "json_object"}
+        }
+        
+        # Call Groq API
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        
+        # Parse the response
+        response_data = response.json()
+        content = response_data["choices"][0]["message"]["content"]
+        insights = json.loads(content)
+        return insights, None
+    
+    except Exception as e:
+        error_message = f"Error getting insights: {str(e)}"
+        return None, error_message
+
+# Routes
+
+@app.route('/predict-fertilizer', methods=['POST'])
+def predict_fertilizer():
+    try:
+        data = request.get_json()
+
+        required_fields = ['Temperature', 'Humidity', 'Soil Moisture', 'Soil Type',
+                           'Crop Type', 'Nitrogen', 'Potassium', 'Phosphorus']
+
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+        soil_encoder = joblib.load("../models/soil_type_encoder.pkl")
+        crop_encoder = joblib.load("../models/crop_type_encoder.pkl")
+        fertilizer_encoder = joblib.load("../models/fertilizer_encoder.pkl")
+
+        # Transform categorical features
+        soil_type_encoded = soil_encoder.transform([data['Soil Type']])[0]
+        crop_type_encoded = crop_encoder.transform([data['Crop Type']])[0]
+
+        # Prepare input data
+        input_data = pd.DataFrame([{
+            'Temperature': float(data['Temperature']),
+            'Humidity': float(data['Humidity']),
+            'Soil Moisture': float(data['Soil Moisture']),
+            'Soil Type': soil_type_encoded,
+            'Crop Type': crop_type_encoded,
+            'Nitrogen': int(data['Nitrogen']),
+            'Potassium': int(data['Potassium']),
+            'Phosphorus': int(data['Phosphorus']),
+        }])
+
+        xgb = joblib.load('../models/xgb_fertilizer_model.pkl')
+        pred = xgb.predict(input_data)
+
+        
+
+        return jsonify({
+            'recommended_fertilizer' : pred
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# farmwers activity via mobile
+@app.route('/api/mobile-activity',methods=['POST'])
+def mobile_activity():
+    data = request.get_json()
+    text = data['text']
+    if text == '':
+        return jsonify({'message':'No actibity added'}) , 401
+    try:
+        prompt = f"""
+    Categorize the following agricultural text input and extract structured activity details:
+
+    "{text}"
+
+    As an intelligent agricultural assistant, analyze the user's input and generate a structured JSON object with the following keys:
+    {{
+        "activity_type": "Category of the activity (e.g., Harvesting, Sowing, Irrigation, Fertilization, Expense, etc.)",
+        "activity_name": "Short name or title of the activity",
+        "summary": "Brief summary or explanation of the activity described in the input",
+        "amount": "Extracted amount involved in the activity, if mentioned (in numeric form without currency symbol)"
+    }}
+
+    Please strictly return only the valid JSON. No extra explanation, no surrounding text — only a clean JSON object.
+"""
+
+
+        # Initialize Groq client with API key
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+        # Make the chat completion request
+        chat_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant with deep agricultural and plant pathology knowledge."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.5,
+            max_completion_tokens=1024,
+            top_p=1,
+            stop=None,
+            stream=False
+        )
+
+# Extract the response
+        detailed_info = chat_completion.choices[0].message.content.strip()
+
+
+        return jsonify({
+
+        }), 200
+    except:
+        return jsonify({"message","Failed to create activity"}) , 401
+
 
 # Call the seed function at startup
 seed_demo_data()
