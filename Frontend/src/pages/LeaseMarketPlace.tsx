@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { Search, Filter, ShoppingCart, Tractor, Calendar, Clock, Heart, Combine, Shovel, Droplet, Cpu } from 'lucide-react';
 
+// Import images
+import tractorImage from '../assets/leasemarket/image.png';
+import seederImage from '../assets/leasemarket/X5.png';
+import harvestImage from '../assets/leasemarket/harvester.png';
+import irrigationImage from '../assets/leasemarket/irrigation.png';
+import tillageImage from '../assets/leasemarket/tillage.png';
+import droneImage from '../assets/leasemarket/drone.png';
+
 // Mock data for equipment listings
 const equipmentData = [
   {
@@ -10,7 +18,7 @@ const equipmentData = [
     description: 'Powerful utility tractor with 75HP engine, perfect for medium-sized farms.',
     price: 125,
     period: 'day',
-    image: '/api/placeholder/400/260',
+    image: tractorImage,
     rating: 4.8,
     reviews: 56,
     available: true
@@ -22,7 +30,7 @@ const equipmentData = [
     description: 'Precision seeding equipment with adjustable row spacing and depth control.',
     price: 85,
     period: 'day',
-    image: '/api/placeholder/400/260',
+    image: seederImage,
     rating: 4.6,
     reviews: 42,
     available: true
@@ -34,7 +42,7 @@ const equipmentData = [
     description: 'High-capacity grain harvester with 24-foot cutting width and GPS guidance.',
     price: 275,
     period: 'day',
-    image: '/api/placeholder/400/260',
+    image: harvestImage,
     rating: 4.9,
     reviews: 38,
     available: false
@@ -46,7 +54,7 @@ const equipmentData = [
     description: 'Water-efficient drip irrigation system with smart scheduling and monitoring.',
     price: 65,
     period: 'day',
-    image: '/api/placeholder/400/260',
+    image: irrigationImage,
     rating: 4.5,
     reviews: 64,
     available: true
@@ -58,7 +66,7 @@ const equipmentData = [
     description: 'Versatile soil preparation tool combining multiple operations in a single pass.',
     price: 95,
     period: 'day',
-    image: '/api/placeholder/400/260',
+    image: tillageImage,
     rating: 4.7,
     reviews: 29,
     available: true
@@ -70,7 +78,7 @@ const equipmentData = [
     description: 'Advanced drone with multispectral imaging for precise crop health monitoring.',
     price: 110,
     period: 'day',
-    image: '/api/placeholder/400/260',
+    image: droneImage,
     rating: 4.9,
     reviews: 47,
     available: true
