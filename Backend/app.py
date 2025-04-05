@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
-from db import users_collection, yields_collection
+from db import users_collection, yields_collection,activities_collection
 import base64
 from groq import Groq
 from decouple import config
@@ -288,6 +288,7 @@ def update_yield(current_user, yield_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/api/yields/<yield_id>', methods=['DELETE'])
 @token_required
 def delete_yield(current_user, yield_id):
@@ -304,6 +305,52 @@ def delete_yield(current_user, yield_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+#activities
+
+
+@app.route('/create_activity', methods=['POST'])
+def create_activity():
+    data = request.get_json()
+
+    # Required fields
+    required_fields = ['yield', 'mobileno', 'price', 'summary', 'quantity', 'activity_type']
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # Find user by mobile number
+    user = users_collection.find_one({'mobileno': data['mobileno']})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Find yield by ID and match user ID
+    try:
+        yield_obj = yields_collection.find_one({
+            '_id': ObjectId(data['yield']),
+            'user_id': user['_id']
+        })
+    except Exception as e:
+        return jsonify({"error": f"Invalid yield ID format: {str(e)}"}), 400
+
+    if not yield_obj:
+        return jsonify({"error": "Yield not found for the given user"}), 404
+
+    # Insert the activity
+    activity = {
+        'user_id': user['_id'],
+        'yield_id': yield_obj['_id'],
+        'price': data['price'],
+        'summary': data['summary'],
+        'quantity': data['quantity'],
+        'activity_type': data['activity_type'],
+        'created_at': datetime.utcnow()
+    }
+
+    result = activities_collection.insert_one(activity)
+
+    return jsonify({
+        "message": "Activity created successfully",
+        "activity_id": str(result.inserted_id)
+    }), 201
 # ------------------ Run App ------------------
 if __name__ == '__main__':
     app.run(debug=True)
