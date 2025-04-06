@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Bell, User, MapPin, ArrowUpRight, 
   Leaf, Sun, Wind, Thermometer, Activity, Droplets, Clock,
-  Archive, Home, Truck
+  Archive, Home, Truck, ChevronDown, ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogClose
 } from "@/components/ui/dialog";
+import { Tab } from '@headlessui/react';
 
 // Define the Yield type
 interface Yield {
@@ -52,6 +53,13 @@ const Dashboard = () => {
   // Add state for active and inactive yields
   const [activeYields, setActiveYields] = useState<Yield[]>([]);
   const [inactiveYields, setInactiveYields] = useState<Yield[]>([]);
+  
+  // Add state for expanded/collapsed phases
+  const [expandedPhases, setExpandedPhases] = useState({
+    phase1: true,
+    phase2: true, 
+    phase3: true
+  });
   
   // Fetch user's yields when component mounts
   useEffect(() => {
@@ -203,6 +211,14 @@ const Dashboard = () => {
     setShowPreviousYieldsModal(true);
   };
 
+  // Add function to toggle phase expansion
+  const togglePhase = (phase: 'phase1' | 'phase2' | 'phase3') => {
+    setExpandedPhases(prev => ({
+      ...prev,
+      [phase]: !prev[phase]
+    }));
+  };
+
   return (
     <div className="bg-agriBg min-h-screen w-full">
       <div className="w-full h-full p-2 sm:p-4">
@@ -272,148 +288,267 @@ const Dashboard = () => {
                 </div>
               </Card>
 
-              {/* Features Section */}
+              {/* Features Section with Phase Tabs */}
               <Card className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h2 className="font-semibold text-lg">Features</h2>
+                    <p className="text-xs text-muted-foreground">Access tools by cultivation phase</p>
+                  </div>
+                </div>
+
+                {/* Phase Navigation */}
+                <div className="mb-4 border-b border-gray-200">
+                  <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <button 
+                      className={`px-3 py-1.5 rounded-t-lg text-sm font-medium transition ${
+                        expandedPhases.phase1 ? 'bg-blue-100 text-blue-600 border-b-2 border-blue-500' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      onClick={() => togglePhase('phase1')}
+                    >
+                      <div className="flex items-center">
+                        <Clock className="w-4 h-4 mr-1.5" />
+                        Planning
+                      </div>
+                    </button>
+                    <button 
+                      className={`px-3 py-1.5 rounded-t-lg text-sm font-medium transition ${
+                        expandedPhases.phase2 ? 'bg-green-100 text-green-600 border-b-2 border-green-500' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      onClick={() => togglePhase('phase2')}
+                    >
+                      <div className="flex items-center">
+                        <Leaf className="w-4 h-4 mr-1.5" />
+                        Growing
+                      </div>
+                    </button>
+                    <button 
+                      className={`px-3 py-1.5 rounded-t-lg text-sm font-medium transition ${
+                        expandedPhases.phase3 ? 'bg-yellow-100 text-yellow-600 border-b-2 border-yellow-500' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      onClick={() => togglePhase('phase3')}
+                    >
+                      <div className="flex items-center">
+                        <Archive className="w-4 h-4 mr-1.5" />
+                        Harvest
+                      </div>
+                    </button>
                   </div>
                 </div>
 
                 {/* Phase 1: Planning & Preparation */}
-                <div className="mb-6">
-                  <div className="flex items-center mb-3">
-                    <div className="bg-blue-100 p-2 rounded-full mr-2">
+                <div className={`mb-5 rounded-lg ${expandedPhases.phase1 ? 'bg-blue-50/50 border border-blue-100 p-4' : 'p-2'}`}>
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => togglePhase('phase1')}
+                  >
+                    <div className="bg-blue-100 p-2 rounded-full mr-2 flex-shrink-0">
                       <Clock className="w-5 h-5 text-blue-500" />
                     </div>
-                    <h3 className="font-semibold">Phase 1: Planning & Preparation</h3>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Phase 1: Planning & Preparation</h3>
+                      {!expandedPhases.phase1 && (
+                        <p className="text-xs text-muted-foreground">Tools for pre-planting season</p>
+                      )}
+                    </div>
+                    {expandedPhases.phase1 ? (
+                      <ChevronUp className="h-5 w-5 text-blue-500" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">Tools to use before planting season begins</p>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
-                    {/* AI-Based Crop Prediction */}
-                    <Card 
-                      className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
-                      onClick={handleNavigateToCropPrediction}
-                    >
-                      <div className="flex flex-col items-center text-center">
-                        <div className="bg-blue-500/10 p-3 sm:p-4 rounded-full mb-3">
-                          <Activity className="w-6 sm:w-8 h-6 sm:h-8 text-blue-500" />
+                  {expandedPhases.phase1 && (
+                    <>
+                      <div className="flex items-center mt-2 mb-4">
+                        <div className="h-2 flex-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: '75%' }}></div>
                         </div>
-                        <h3 className="font-medium text-sm sm:text-base mb-1">AI-Based Prediction</h3>
-                        <p className="text-xs text-muted-foreground">Crop recommendations & yield forecasting</p>
+                        <span className="ml-2 text-xs font-medium text-blue-600">75%</span>
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                      </div>
-                    </Card>
+                      
+                      <p className="text-sm text-muted-foreground mb-4">Tools to use before planting season begins</p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        {/* AI-Based Crop Prediction */}
+                        <Card 
+                          className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden border-blue-200"
+                          onClick={handleNavigateToCropPrediction}
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <div className="bg-blue-500/10 p-3 sm:p-4 rounded-full mb-3">
+                              <Activity className="w-6 sm:w-8 h-6 sm:h-8 text-blue-500" />
+                            </div>
+                            <h3 className="font-medium text-sm sm:text-base mb-1">AI-Based Prediction</h3>
+                            <p className="text-xs text-muted-foreground">Crop recommendations & yield forecasting</p>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                          </div>
+                        </Card>
 
-                    {/* Lease Marketplace */}
-                    <Card className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
-                      onClick={handleNavigateToLeaseMarketPlace}
-                    >
-                      <div className="flex flex-col items-center text-center">
-                        <div className="bg-pink-500/10 p-3 sm:p-4 rounded-full mb-3">
-                          <MapPin className="w-6 sm:w-8 h-6 sm:h-8 text-pink-500" />
-                        </div>
-                        <h3 className="font-medium text-sm sm:text-base mb-1">Lease Marketplace</h3>
-                        <p className="text-xs text-muted-foreground">Equipment rental & field planning</p>
+                        {/* Lease Marketplace */}
+                        <Card 
+                          className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden border-blue-200"
+                          onClick={handleNavigateToLeaseMarketPlace}
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <div className="bg-pink-500/10 p-3 sm:p-4 rounded-full mb-3">
+                              <MapPin className="w-6 sm:w-8 h-6 sm:h-8 text-pink-500" />
+                            </div>
+                            <h3 className="font-medium text-sm sm:text-base mb-1">Lease Marketplace</h3>
+                            <p className="text-xs text-muted-foreground">Equipment rental & field planning</p>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <div className="h-2 w-2 bg-pink-500 rounded-full"></div>
+                          </div>
+                        </Card>
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <div className="h-2 w-2 bg-pink-500 rounded-full"></div>
-                      </div>
-                    </Card>
-                  </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Phase 2: Growing & Monitoring */}
-                <div className="mb-6">
-                  <div className="flex items-center mb-3">
-                    <div className="bg-green-100 p-2 rounded-full mr-2">
+                <div className={`mb-5 rounded-lg ${expandedPhases.phase2 ? 'bg-green-50/50 border border-green-100 p-4' : 'p-2'}`}>
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => togglePhase('phase2')}
+                  >
+                    <div className="bg-green-100 p-2 rounded-full mr-2 flex-shrink-0">
                       <Leaf className="w-5 h-5 text-green-500" />
                     </div>
-                    <h3 className="font-semibold">Phase 2: Growing & Monitoring</h3>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Phase 2: Growing & Monitoring</h3>
+                      {!expandedPhases.phase2 && (
+                        <p className="text-xs text-muted-foreground">Tools for cultivation period</p>
+                      )}
+                    </div>
+                    {expandedPhases.phase2 ? (
+                      <ChevronUp className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">Tools for during the cultivation period</p>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
-                    {/* Crop Health Monitoring */}
-                    <Card className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
-                      onClick={handleNavigateToCropHealthMonitoring}
-                    >
-                      <div className="flex flex-col items-center text-center">
-                        <div className="bg-agrigreen/10 p-3 sm:p-4 rounded-full mb-3">
-                          <Leaf className="w-6 sm:w-8 h-6 sm:h-8 text-agrigreen" />
+                  {expandedPhases.phase2 && (
+                    <>
+                      <div className="flex items-center mt-2 mb-4">
+                        <div className="h-2 flex-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 rounded-full" style={{ width: '50%' }}></div>
                         </div>
-                        <h3 className="font-medium text-sm sm:text-base mb-1">Crop Health Monitoring</h3>
-                        <p className="text-xs text-muted-foreground">Disease detection & health tracking</p>
+                        <span className="ml-2 text-xs font-medium text-green-600">50%</span>
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                      </div>
-                    </Card>
+                      
+                      <p className="text-sm text-muted-foreground mb-4">Tools for during the cultivation period</p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        {/* Crop Health Monitoring */}
+                        <Card 
+                          className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden border-green-200"
+                          onClick={handleNavigateToCropHealthMonitoring}
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <div className="bg-agrigreen/10 p-3 sm:p-4 rounded-full mb-3">
+                              <Leaf className="w-6 sm:w-8 h-6 sm:h-8 text-agrigreen" />
+                            </div>
+                            <h3 className="font-medium text-sm sm:text-base mb-1">Crop Health Monitoring</h3>
+                            <p className="text-xs text-muted-foreground">Disease detection & health tracking</p>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                          </div>
+                        </Card>
 
-                    {/* Smart Irrigation */}
-                    <Card className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
-                      <div className="flex flex-col items-center text-center">
-                        <div className="bg-cyan-500/10 p-3 sm:p-4 rounded-full mb-3">
-                          <Droplets className="w-6 sm:w-8 h-6 sm:h-8 text-cyan-500" />
-                        </div>
-                        <h3 className="font-medium text-sm sm:text-base mb-1">Smart Irrigation</h3>
-                        <p className="text-xs text-muted-foreground">Water optimization & scheduling</p>
+                        {/* Smart Irrigation */}
+                        <Card 
+                          className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden border-green-200"
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <div className="bg-cyan-500/10 p-3 sm:p-4 rounded-full mb-3">
+                              <Droplets className="w-6 sm:w-8 h-6 sm:h-8 text-cyan-500" />
+                            </div>
+                            <h3 className="font-medium text-sm sm:text-base mb-1">Smart Irrigation</h3>
+                            <p className="text-xs text-muted-foreground">Water optimization & scheduling</p>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <div className="h-2 w-2 bg-cyan-500 rounded-full"></div>
+                          </div>
+                        </Card>
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <div className="h-2 w-2 bg-cyan-500 rounded-full"></div>
-                      </div>
-                    </Card>
-                  </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Phase 3: Harvest & Distribution */}
-                <div>
-                  <div className="flex items-center mb-3">
-                    <div className="bg-yellow-100 p-2 rounded-full mr-2">
+                <div className={`rounded-lg ${expandedPhases.phase3 ? 'bg-yellow-50/50 border border-yellow-100 p-4' : 'p-2'}`}>
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => togglePhase('phase3')}
+                  >
+                    <div className="bg-yellow-100 p-2 rounded-full mr-2 flex-shrink-0">
                       <Archive className="w-5 h-5 text-yellow-600" />
                     </div>
-                    <h3 className="font-semibold">Phase 3: Harvest & Distribution</h3>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Phase 3: Harvest & Distribution</h3>
+                      {!expandedPhases.phase3 && (
+                        <p className="text-xs text-muted-foreground">Tools for post-harvest</p>
+                      )}
+                    </div>
+                    {expandedPhases.phase3 ? (
+                      <ChevronUp className="h-5 w-5 text-yellow-600" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">Tools for post-harvest management</p>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    {/* Supply Chain Management */}
-                    <Card 
-                      className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
-                      onClick={handleNavigateToSupplyChain}
-                    >
-                      <div className="flex flex-col items-center text-center">
-                        <div className="bg-purple-500/10 p-3 sm:p-4 rounded-full mb-3">
-                          <Clock className="w-6 sm:w-8 h-6 sm:h-8 text-purple-500" />
+                  {expandedPhases.phase3 && (
+                    <>
+                      <div className="flex items-center mt-2 mb-4">
+                        <div className="h-2 flex-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-yellow-500 rounded-full" style={{ width: '25%' }}></div>
                         </div>
-                        <h3 className="font-medium text-sm sm:text-base mb-1">Supply Chain</h3>
-                        <p className="text-xs text-muted-foreground">Transport optimization & logistics</p>
+                        <span className="ml-2 text-xs font-medium text-yellow-600">25%</span>
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
-                      </div>
-                    </Card>
+                      
+                      <p className="text-sm text-muted-foreground mb-4">Tools for post-harvest management</p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        {/* Supply Chain Management */}
+                        <Card 
+                          className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden border-yellow-200"
+                          onClick={handleNavigateToSupplyChain}
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <div className="bg-purple-500/10 p-3 sm:p-4 rounded-full mb-3">
+                              <Truck className="w-6 sm:w-8 h-6 sm:h-8 text-purple-500" />
+                            </div>
+                            <h3 className="font-medium text-sm sm:text-base mb-1">Supply Chain</h3>
+                            <p className="text-xs text-muted-foreground">Transport optimization & logistics</p>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
+                          </div>
+                        </Card>
 
-                    {/* Previous Yields */}
-                    <Card 
-                      className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
-                      onClick={handleShowPreviousYields}
-                    >
-                      <div className="flex flex-col items-center text-center">
-                        <div className="bg-gray-500/10 p-3 sm:p-4 rounded-full mb-3">
-                          <Archive className="w-6 sm:w-8 h-6 sm:h-8 text-gray-500" />
-                        </div>
-                        <h3 className="font-medium text-sm sm:text-base mb-1">Previous Yields</h3>
-                        <p className="text-xs text-muted-foreground">Historical data & performance</p>
+                        {/* Previous Yields */}
+                        <Card 
+                          className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden border-yellow-200"
+                          onClick={handleShowPreviousYields}
+                        >
+                          <div className="flex flex-col items-center text-center">
+                            <div className="bg-gray-500/10 p-3 sm:p-4 rounded-full mb-3">
+                              <Archive className="w-6 sm:w-8 h-6 sm:h-8 text-gray-500" />
+                            </div>
+                            <h3 className="font-medium text-sm sm:text-base mb-1">Previous Yields</h3>
+                            <p className="text-xs text-muted-foreground">Historical data & performance</p>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
+                          </div>
+                        </Card>
                       </div>
-                      <div className="absolute top-2 right-2">
-                        <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
-                      </div>
-                    </Card>
-                  </div>
+                    </>
+                  )}
                 </div>
               </Card>
             </div>
