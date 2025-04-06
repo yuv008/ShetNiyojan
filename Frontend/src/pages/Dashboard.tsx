@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Bell, User, MapPin, ArrowUpRight, 
   Leaf, Sun, Wind, Thermometer, Activity, Droplets, Clock,
-  Archive
+  Archive, Home, Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,25 +205,25 @@ const Dashboard = () => {
 
   return (
     <div className="bg-agriBg min-h-screen w-full">
-      <div className="w-full h-full p-4">
+      <div className="w-full h-full p-2 sm:p-4">
         <DashboardHeader 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
 
         {/* Main Grid */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* Sidebar */}
-          <div className="col-span-1 h-[calc(100vh-2rem)]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4">
+          {/* Sidebar - Hidden on mobile, shown as fixed sidebar on larger screens */}
+          <div className="hidden md:block md:col-span-1 md:h-[calc(100vh-2rem)]">
             <DashboardSidebar />
           </div>
 
-          {/* Main Content */}
-          <div className="col-span-11 grid grid-cols-3 gap-4">
-            {/* Left Column */}
-            <div className="col-span-2 space-y-4">
-              {/* Location and Weather */}
-              <Card className="p-4">
+          {/* Main Content - Full width on mobile, 11/12 on larger screens */}
+          <div className="col-span-1 md:col-span-11 grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+            {/* Left Column - Full width on mobile, 2/3 on large screens */}
+            <div className="col-span-1 lg:col-span-2 space-y-3 sm:space-y-4">
+              {/* Current Yields Card */}
+              <Card className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold text-lg">Current Yields</h2>
                   <Button variant="outline" size="sm" onClick={() => setShowAddYieldModal(true)} className="flex items-center">
@@ -247,15 +247,15 @@ const Dashboard = () => {
                         <div className="bg-agrigreen/10 p-2 rounded-full mr-3">
                           <Leaf className="w-5 h-5 text-agrigreen" />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">{yieldItem.name}</h3>
-                          <div className="flex text-xs text-muted-foreground">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate">{yieldItem.name}</h3>
+                          <div className="flex flex-wrap text-xs text-muted-foreground">
                             <span>{yieldItem.acres} acres</span>
-                            <span className="mx-2">•</span>
+                            <span className="mx-2 hidden sm:inline">•</span>
                             <span>Status: {yieldItem.status}</span>
                           </div>
                         </div>
-                        <div className={`px-2 py-1 rounded text-xs font-medium ${
+                        <div className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                           yieldItem.status === 'growing' ? 'bg-green-500/10 text-green-600' :
                           yieldItem.status === 'harvested' ? 'bg-blue-500/10 text-blue-600' :
                           'bg-yellow-500/10 text-yellow-600'
@@ -272,8 +272,8 @@ const Dashboard = () => {
                 </div>
               </Card>
 
-              {/* Garden Info */}
-              <Card className="p-4">
+              {/* Features Section */}
+              <Card className="p-3 sm:p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h2 className="font-semibold text-lg">Features</h2>
@@ -290,17 +290,17 @@ const Dashboard = () => {
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">Tools to use before planting season begins</p>
                   
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
                     {/* AI-Based Crop Prediction */}
                     <Card 
-                      className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                      className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
                       onClick={handleNavigateToCropPrediction}
                     >
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-blue-500/10 p-4 rounded-full mb-3">
-                          <Activity className="w-8 h-8 text-blue-500" />
+                        <div className="bg-blue-500/10 p-3 sm:p-4 rounded-full mb-3">
+                          <Activity className="w-6 sm:w-8 h-6 sm:h-8 text-blue-500" />
                         </div>
-                        <h3 className="font-medium text-base mb-1">AI-Based Prediction</h3>
+                        <h3 className="font-medium text-sm sm:text-base mb-1">AI-Based Prediction</h3>
                         <p className="text-xs text-muted-foreground">Crop recommendations & yield forecasting</p>
                       </div>
                       <div className="absolute top-2 right-2">
@@ -309,14 +309,14 @@ const Dashboard = () => {
                     </Card>
 
                     {/* Lease Marketplace */}
-                    <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                    <Card className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
                       onClick={handleNavigateToLeaseMarketPlace}
                     >
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-pink-500/10 p-4 rounded-full mb-3">
-                          <MapPin className="w-8 h-8 text-pink-500" />
+                        <div className="bg-pink-500/10 p-3 sm:p-4 rounded-full mb-3">
+                          <MapPin className="w-6 sm:w-8 h-6 sm:h-8 text-pink-500" />
                         </div>
-                        <h3 className="font-medium text-base mb-1">Lease Marketplace</h3>
+                        <h3 className="font-medium text-sm sm:text-base mb-1">Lease Marketplace</h3>
                         <p className="text-xs text-muted-foreground">Equipment rental & field planning</p>
                       </div>
                       <div className="absolute top-2 right-2">
@@ -336,16 +336,16 @@ const Dashboard = () => {
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">Tools for during the cultivation period</p>
                   
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    {/* Crop Health Monitoring & Disease Detection */}
-                    <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
+                    {/* Crop Health Monitoring */}
+                    <Card className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
                       onClick={handleNavigateToCropHealthMonitoring}
                     >
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-agrigreen/10 p-4 rounded-full mb-3">
-                          <Leaf className="w-8 h-8 text-agrigreen" />
+                        <div className="bg-agrigreen/10 p-3 sm:p-4 rounded-full mb-3">
+                          <Leaf className="w-6 sm:w-8 h-6 sm:h-8 text-agrigreen" />
                         </div>
-                        <h3 className="font-medium text-base mb-1">Crop Health Monitoring</h3>
+                        <h3 className="font-medium text-sm sm:text-base mb-1">Crop Health Monitoring</h3>
                         <p className="text-xs text-muted-foreground">Disease detection & health tracking</p>
                       </div>
                       <div className="absolute top-2 right-2">
@@ -354,12 +354,12 @@ const Dashboard = () => {
                     </Card>
 
                     {/* Smart Irrigation */}
-                    <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+                    <Card className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-cyan-500/10 p-4 rounded-full mb-3">
-                          <Droplets className="w-8 h-8 text-cyan-500" />
+                        <div className="bg-cyan-500/10 p-3 sm:p-4 rounded-full mb-3">
+                          <Droplets className="w-6 sm:w-8 h-6 sm:h-8 text-cyan-500" />
                         </div>
-                        <h3 className="font-medium text-base mb-1">Smart Irrigation</h3>
+                        <h3 className="font-medium text-sm sm:text-base mb-1">Smart Irrigation</h3>
                         <p className="text-xs text-muted-foreground">Water optimization & scheduling</p>
                       </div>
                       <div className="absolute top-2 right-2">
@@ -379,17 +379,17 @@ const Dashboard = () => {
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">Tools for post-harvest management</p>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {/* Supply Chain Management */}
                     <Card 
-                      className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                      className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
                       onClick={handleNavigateToSupplyChain}
                     >
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-purple-500/10 p-4 rounded-full mb-3">
-                          <Clock className="w-8 h-8 text-purple-500" />
+                        <div className="bg-purple-500/10 p-3 sm:p-4 rounded-full mb-3">
+                          <Clock className="w-6 sm:w-8 h-6 sm:h-8 text-purple-500" />
                         </div>
-                        <h3 className="font-medium text-base mb-1">Supply Chain</h3>
+                        <h3 className="font-medium text-sm sm:text-base mb-1">Supply Chain</h3>
                         <p className="text-xs text-muted-foreground">Transport optimization & logistics</p>
                       </div>
                       <div className="absolute top-2 right-2">
@@ -399,14 +399,14 @@ const Dashboard = () => {
 
                     {/* Previous Yields */}
                     <Card 
-                      className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                      className="p-3 sm:p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
                       onClick={handleShowPreviousYields}
                     >
                       <div className="flex flex-col items-center text-center">
-                        <div className="bg-gray-500/10 p-4 rounded-full mb-3">
-                          <Archive className="w-8 h-8 text-gray-500" />
+                        <div className="bg-gray-500/10 p-3 sm:p-4 rounded-full mb-3">
+                          <Archive className="w-6 sm:w-8 h-6 sm:h-8 text-gray-500" />
                         </div>
-                        <h3 className="font-medium text-base mb-1">Previous Yields</h3>
+                        <h3 className="font-medium text-sm sm:text-base mb-1">Previous Yields</h3>
                         <p className="text-xs text-muted-foreground">Historical data & performance</p>
                       </div>
                       <div className="absolute top-2 right-2">
@@ -419,12 +419,12 @@ const Dashboard = () => {
             </div>
 
             {/* Right Column */}
-            <div className="col-span-1 space-y-4">
+            <div className="col-span-1 space-y-3 sm:space-y-4">
               {/* Current Season Card */}
-              <Card className="p-4">
+              <Card className="p-3 sm:p-4">
                 <h3 className="font-medium mb-4">Current Season</h3>
                 <div className="text-center mb-4">
-                  <div className="text-5xl font-bold text-agrigreen">{activeYields.length}</div>
+                  <div className="text-4xl sm:text-5xl font-bold text-agrigreen">{activeYields.length}</div>
                   <div className="text-sm text-muted-foreground mt-2">Active Yields</div>
                 </div>
                 <Button 
@@ -436,7 +436,7 @@ const Dashboard = () => {
               </Card>
 
               {/* Activity Log */}
-              <Card className="p-4">
+              <Card className="p-3 sm:p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-medium">Recent Activity</h3>
                   <ArrowUpRight className="w-4 h-4 text-gray-400" />
@@ -444,8 +444,8 @@ const Dashboard = () => {
                 <ActivityLog />
               </Card>
 
-              {/* Device List */}
-              <Card className="p-4">
+              {/* Device List - Only visible on larger screens or stacked on mobile */}
+              <Card className="p-3 sm:p-4">
                 <h3 className="font-medium mb-2">Device</h3>
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   <div className="bg-gray-100 rounded p-2">
@@ -458,8 +458,8 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Sensor Status */}
-                <div className="space-y-3">
+                {/* Sensor Status - Reduced for mobile */}
+                <div className="space-y-2 sm:space-y-3">
                   <SensorStatus 
                     name="JLNew H10: Soil Moisture Sensor"
                     id="SM201" 
@@ -485,6 +485,26 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Mobile Sidebar - Fixed at bottom for easy navigation on mobile */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white p-2 border-t flex justify-around items-center z-10">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="flex flex-col items-center">
+            <Home className="h-5 w-5" />
+            <span className="text-xs mt-1">Home</span>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleNavigateToSupplyChain} className="flex flex-col items-center">
+            <Truck className="h-5 w-5" />
+            <span className="text-xs mt-1">Supply</span>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleNavigateToCropHealthMonitoring} className="flex flex-col items-center">
+            <Leaf className="h-5 w-5" />
+            <span className="text-xs mt-1">Health</span>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard/profile')} className="flex flex-col items-center">
+            <User className="h-5 w-5" />
+            <span className="text-xs mt-1">Profile</span>
+          </Button>
+        </div>
+
         {/* Add Yield Modal */}
         {showAddYieldModal && (
           <YieldModal 
@@ -496,7 +516,7 @@ const Dashboard = () => {
         {/* Previous Yields Modal */}
         {showPreviousYieldsModal && (
           <Dialog open={showPreviousYieldsModal} onOpenChange={setShowPreviousYieldsModal}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md max-w-[90%] w-full">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Archive className="h-5 w-5 text-gray-500" />
@@ -526,8 +546,8 @@ const Dashboard = () => {
                         <div className="bg-gray-200 p-2 rounded-full mr-3">
                           <Leaf className="w-5 h-5 text-gray-500" />
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">{yieldItem.name}</h3>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate">{yieldItem.name}</h3>
                           <div className="flex text-xs text-muted-foreground">
                             <span>{yieldItem.acres} acres</span>
                             <span className="mx-2">•</span>
@@ -550,8 +570,8 @@ const Dashboard = () => {
           </Dialog>
         )}
 
-        {/* Floating language selector */}
-        <div className="fixed bottom-6 right-6 z-50">
+        {/* Floating language selector - Positioned to avoid overlap with mobile nav */}
+        <div className="fixed bottom-20 md:bottom-6 right-6 z-50">
           <div className="bg-white p-2 rounded-lg shadow-lg">
             <LanguageSelector />
           </div>
