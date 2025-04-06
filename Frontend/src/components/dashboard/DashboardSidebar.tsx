@@ -18,9 +18,7 @@ const DashboardSidebar = () => {
 
   const items: SidebarItem[] = [
     { icon: Home, path: "/dashboard", position: "top" },
-    { icon: Leaf, path: "/yield/current", position: "top" },
     { icon: Truck, path: "/supply-chain", position: "top" },
-    { icon: BookOpen, path: "/learn", position: "top" },
     { icon: Settings, path: "/dashboard/settings", position: "bottom" },
     { icon: User, path: "/dashboard/profile", position: "bottom" },
   ];

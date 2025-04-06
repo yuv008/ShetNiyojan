@@ -123,6 +123,16 @@ const Dashboard = () => {
       // Update local state with the new yield from the server
       setUserYields(prevYields => [...prevYields, result]);
       
+      // New yields are active by default, so update activeYields state too
+      const newYield = result;
+      // Ensure the yield has a default status if none is provided
+      if (!newYield.status) {
+        newYield.status = 'planning';
+      }
+      
+      // Add new yield to activeYields list since it's new and not inactive
+      setActiveYields(prevYields => [...prevYields, newYield]);
+      
       toast({
         title: "Yield Added",
         description: `Added ${data.name} (${data.acres} acres) to current season`,
@@ -145,8 +155,10 @@ const Dashboard = () => {
     try {
       await yieldsApi.delete(yieldId);
       
-      // Update local state
+      // Update all state variables to remove the deleted yield
       setUserYields(prevYields => prevYields.filter(y => y.id !== yieldId));
+      setActiveYields(prevYields => prevYields.filter(y => y.id !== yieldId));
+      setInactiveYields(prevYields => prevYields.filter(y => y.id !== yieldId));
       
       toast({
         title: "Yield Deleted",
