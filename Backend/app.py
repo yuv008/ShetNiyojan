@@ -230,38 +230,38 @@ def plant_disease_analysis():
 
 
 # ------------------ Crop Recommendation ------------------
-# @app.route('/api/crop-recommendation', methods=['POST'])
-# @token_required
-# def crop_recommendation(current_user):
-#     REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+@app.route('/api/crop-recommendation', methods=['POST'])
+@token_required
+def crop_recommendation(current_user):
+    REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
 
-#     # Validate input JSON
-#     data = request.get_json()
-#     missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
-#     if missing_fields:
-#         return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
+    # Validate input JSON
+    data = request.get_json()
+    missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
+    if missing_fields:
+        return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
 
-#     try:
-#         # Load models (open the file first, then pass to pickle.load)
-#         model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
-#         scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
+    try:
+        # Load models (open the file first, then pass to pickle.load)
+        model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
+        scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
 
-#         with open(model_path, 'rb') as f:
-#             crop_recommend_model = pkl.load(f)
+        with open(model_path, 'rb') as f:
+            crop_recommend_model = pkl.load(f)
 
-#         with open(scaler_path, 'rb') as f:
-#             crop_scaler = pkl.load(f)
+        with open(scaler_path, 'rb') as f:
+            crop_scaler = pkl.load(f)
 
-#         # Prepare and scale input data
-#         df = pd.DataFrame([data])
-#         scaled_data = crop_scaler.transform(df)
+        # Prepare and scale input data
+        df = pd.DataFrame([data])
+        scaled_data = crop_scaler.transform(df)
 
-#         # Predict
-#         prediction = crop_recommend_model.predict(scaled_data)[0]
-#         return jsonify({'recommended_crop': prediction}), 201
+        # Predict
+        prediction = crop_recommend_model.predict(scaled_data)[0]
+        return jsonify({'recommended_crop': prediction}), 201
 
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ------------------ Yield Management ------------------
 @app.route('/api/yields', methods=['GET'])
