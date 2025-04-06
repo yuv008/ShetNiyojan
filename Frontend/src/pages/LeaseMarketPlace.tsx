@@ -272,7 +272,7 @@ const LeaseMarketplace: React.FC = () => {
             <DashboardSidebar />
           </div>
 
-          {/* Main Content */}
+      {/* Main Content */}
           <div className="col-span-11">
             {/* Header */}
             <div className="mb-6 flex justify-between items-center">
@@ -316,7 +316,7 @@ const LeaseMarketplace: React.FC = () => {
                   <Search className="w-4 h-4 mr-2" />
                   Search
                 </Button>
-              </div>
+          </div>
 
               {/* Category Filters */}
               <div className="flex flex-wrap gap-2">
@@ -368,7 +368,7 @@ const LeaseMarketplace: React.FC = () => {
                             item.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                             {item.available ? 'Available' : 'Leased'}
-                          </div>
+                    </div>
                         </div>
                         
                         <div className="flex items-center my-1">
@@ -470,10 +470,10 @@ const LeaseMarketplace: React.FC = () => {
                       required
                       rows={3}
                     />
-                  </div>
+            </div>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+              <div>
                       <Label htmlFor="pricePerHour">Hourly Rate (₹) *</Label>
                       <Input
                         id="pricePerHour"
@@ -485,9 +485,9 @@ const LeaseMarketplace: React.FC = () => {
                         required
                         min="1"
                       />
-                    </div>
+              </div>
                     
-                    <div>
+              <div>
                       <Label htmlFor="location">Location *</Label>
                       <Input
                         id="location"
@@ -498,9 +498,9 @@ const LeaseMarketplace: React.FC = () => {
                         required
                       />
                     </div>
-                  </div>
+              </div>
                   
-                  <div>
+              <div>
                     <Label htmlFor="imageUrl">Image URL *</Label>
                     <Input
                       id="imageUrl"
@@ -523,8 +523,8 @@ const LeaseMarketplace: React.FC = () => {
                         />
                       </div>
                     )}
-                  </div>
-                </div>
+              </div>
+            </div>
                 
                 <div className="mt-6 flex gap-3">
                   <Button
@@ -551,7 +551,7 @@ const LeaseMarketplace: React.FC = () => {
                       </>
                     )}
                   </Button>
-                </div>
+          </div>
               </form>
             </div>
           </div>
@@ -561,4 +561,4 @@ const LeaseMarketplace: React.FC = () => {
   );
 };
 
-export default LeaseMarketplace; 
+export default LeaseMarketplace;

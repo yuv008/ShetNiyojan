@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { 
   Search, Bell, User, MapPin, ArrowUpRight, 
-  Leaf, Sun, Wind, Thermometer, Activity, Droplets, Clock 
+  Leaf, Sun, Wind, Thermometer, Activity, Droplets, Clock,
+  Archive
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +19,21 @@ import CurrentYields from '../components/dashboard/CurrentYields';
 import { yields as yieldsApi, auth, YieldData } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import LanguageSelector from "@/components/common/LanguageSelector";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from "@/components/ui/dialog";
 
 // Define the Yield type
 interface Yield {
   id: string;
   name: string;
   acres: number;
-  status: "growing" | "harvested" | "planning";
+  status: "growing" | "harvested" | "planning" | "Inactive" | "inactive";
   health: number;
   plantDate: string;
   userId: string;
@@ -33,11 +42,16 @@ interface Yield {
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddYieldModal, setShowAddYieldModal] = useState(false);
+  const [showPreviousYieldsModal, setShowPreviousYieldsModal] = useState(false);
   const [userYields, setUserYields] = useState<Yield[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // Add state for active and inactive yields
+  const [activeYields, setActiveYields] = useState<Yield[]>([]);
+  const [inactiveYields, setInactiveYields] = useState<Yield[]>([]);
   
   // Fetch user's yields when component mounts
   useEffect(() => {
@@ -47,6 +61,20 @@ const Dashboard = () => {
         const response = await yieldsApi.getAll();
         console.log("Fetched yields:", response);
         setUserYields(response);
+        
+        // Filter yields based on status
+        const active = response.filter((yield_item: Yield) => 
+          yield_item.status !== "Inactive" && yield_item.status !== "inactive"
+        );
+        
+        const inactive = response.filter((yield_item: Yield) => 
+          yield_item.status === "Inactive" || yield_item.status === "inactive"
+        );
+        
+        setActiveYields(active);
+        setInactiveYields(inactive);
+        console.log("Active yields:", active.length, "Inactive yields:", inactive.length);
+        
       } catch (error) {
         console.error("Error fetching yields:", error);
         toast({
@@ -158,6 +186,11 @@ const Dashboard = () => {
     navigate('/supply-chain');
   };
 
+  // Handler for opening the previous yields modal
+  const handleShowPreviousYields = () => {
+    setShowPreviousYieldsModal(true);
+  };
+
   return (
     <div className="bg-agriBg min-h-screen w-full">
       <div className="w-full h-full p-4">
@@ -192,8 +225,8 @@ const Dashboard = () => {
                     <div className="flex justify-center items-center h-40">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agrigreen"></div>
                     </div>
-                  ) : userYields.length > 0 ? (
-                    userYields.map(yieldItem => (
+                  ) : activeYields.length > 0 ? (
+                    activeYields.map(yieldItem => (
                       <div 
                         key={yieldItem.id}
                         className="flex items-center p-3 bg-agrigreen/5 rounded-lg border border-agrigreen/20 cursor-pointer hover:bg-agrigreen/10 transition-colors"
@@ -221,7 +254,7 @@ const Dashboard = () => {
                     ))
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      <p>No yields added yet. Click "New" to add your first yield.</p>
+                      <p>No active yields added yet. Click "New" to add your first yield.</p>
                     </div>
                   )}
                 </div>
@@ -270,6 +303,23 @@ const Dashboard = () => {
                     </div>
                   </Card>
 
+                  {/* Previous Yields Card */}
+                  <Card 
+                    className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                    onClick={handleShowPreviousYields}
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      <div className="bg-gray-500/10 p-4 rounded-full mb-3">
+                        <Archive className="w-8 h-8 text-gray-500" />
+                      </div>
+                      <h3 className="font-medium text-base mb-1">Previous Yields</h3>
+                      <p className="text-xs text-muted-foreground">{inactiveYields.length} inactive yield{inactiveYields.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
+                    </div>
+                  </Card>
+
                   {/* Smart Irrigation */}
                   <Card className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
                     <div className="flex flex-col items-center text-center">
@@ -281,23 +331,6 @@ const Dashboard = () => {
                     </div>
                     <div className="absolute top-2 right-2">
                       <div className="h-2 w-2 bg-cyan-500 rounded-full"></div>
-                    </div>
-                  </Card>
-
-                  {/* Market & Supply Chain */}
-                  <Card 
-                    className="p-5 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
-                    onClick={handleNavigateToMarketplace}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <div className="bg-agriorange/10 p-4 rounded-full mb-3">
-                        <AlertTriangle className="w-8 h-8 text-agriorange" />
-                      </div>
-                      <h3 className="font-medium text-base mb-1">Marketplace</h3>
-                      <p className="text-xs text-muted-foreground">Find nearby markets & supplies</p>
-                    </div>
-                    <div className="absolute top-2 right-2">
-                      <div className="h-2 w-2 bg-agriorange rounded-full"></div>
                     </div>
                   </Card>
 
@@ -343,7 +376,7 @@ const Dashboard = () => {
               <Card className="p-4">
                 <h3 className="font-medium mb-4">Current Season</h3>
                 <div className="text-center mb-4">
-                  <div className="text-5xl font-bold text-agrigreen">{userYields.length}</div>
+                  <div className="text-5xl font-bold text-agrigreen">{activeYields.length}</div>
                   <div className="text-sm text-muted-foreground mt-2">Active Yields</div>
                 </div>
                 <Button 
@@ -410,6 +443,63 @@ const Dashboard = () => {
             onClose={() => setShowAddYieldModal(false)}
             onSubmit={handleAddYield}
           />
+        )}
+
+        {/* Previous Yields Modal */}
+        {showPreviousYieldsModal && (
+          <Dialog open={showPreviousYieldsModal} onOpenChange={setShowPreviousYieldsModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Archive className="h-5 w-5 text-gray-500" />
+                  Previous Yields
+                </DialogTitle>
+                <DialogDescription>
+                  These yields are marked as inactive and no longer in cultivation.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="max-h-[60vh] overflow-y-auto pr-2">
+                {inactiveYields.length === 0 ? (
+                  <div className="text-center py-10 text-gray-500">
+                    <p>No inactive yields found.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 mt-2">
+                    {inactiveYields.map(yieldItem => (
+                      <div 
+                        key={yieldItem.id}
+                        className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => {
+                          handleYieldClick(yieldItem.id);
+                          setShowPreviousYieldsModal(false);
+                        }}
+                      >
+                        <div className="bg-gray-200 p-2 rounded-full mr-3">
+                          <Leaf className="w-5 h-5 text-gray-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium">{yieldItem.name}</h3>
+                          <div className="flex text-xs text-muted-foreground">
+                            <span>{yieldItem.acres} acres</span>
+                            <span className="mx-2">•</span>
+                            <span>Status: Inactive</span>
+                          </div>
+                        </div>
+                        <ArrowUpRight className="w-4 h-4 text-gray-400" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end mt-4">
+                <Button variant="outline" onClick={() => setShowPreviousYieldsModal(false)}>
+                  Close
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
 
         {/* Floating language selector */}

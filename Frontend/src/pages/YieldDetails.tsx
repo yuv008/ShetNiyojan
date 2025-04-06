@@ -238,6 +238,10 @@ const YieldDetails = () => {
       
       console.log("Yield details response:", yieldResponse.data);
       
+      // Extract status from the backend response
+      const yieldStatus = yieldResponse.data.status || "Active";
+      console.log("Yield status from backend:", yieldStatus);
+      
       // 2. Fetch the activities for this yield
       const activitiesResponse = await axios.post("http://localhost:5000/api/activities", {
         yield_id: yieldId,
@@ -255,12 +259,12 @@ const YieldDetails = () => {
       const mappedYieldData: YieldDataType = {
         name: yieldResponse.data.name || `Yield ${yieldId}`,
         type: yieldResponse.data.type || "Crop",
-        status: yieldResponse.data.status || "Active",
+        status: yieldStatus, // Explicitly use the status from backend
         createdDate: yieldResponse.data.createdAt || new Date().toLocaleDateString(),
         daysRemain: yieldResponse.data.daysRemain || 0,
         expense: yieldResponse.data.expense || 0,
         activities: activitiesResponse.data?.activities?.length || 0,
-        activityStatus: yieldResponse.data.status || "Active",
+        activityStatus: yieldStatus, // Also use the same status for activityStatus
         description: yieldResponse.data.description || "No description available",
         activityList: []
       };
@@ -352,7 +356,7 @@ const YieldDetails = () => {
       setYieldData(mappedYieldData);
       
       // Update the status state
-      setStatus(mappedYieldData.status);
+      setStatus(yieldStatus);
       
       setLoading(false);
     } catch (error) {
@@ -773,10 +777,53 @@ const YieldDetails = () => {
     }
   };
 
-  const toggleStatus = () => {
+  const toggleStatus = async () => {
     const newStatus = status === "Active" ? "Inactive" : "Active";
-    setStatus(newStatus);
-    console.log(`Marking yield as ${newStatus}`);
+    
+    try {
+      // Show loading toast
+      toast({
+        title: "Updating status...",
+        description: "Please wait while we update the yield status."
+      });
+      
+      // Make API call to update the yield status
+      const response = await axios.put(
+        `http://localhost:5000/api/yields/${yieldId}`,
+        { status: newStatus },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-access-token": localStorage.getItem("userToken")
+          }
+        }
+      );
+      
+      if (response.data && response.data.status === "success") {
+        // Refresh yield data from the backend instead of just updating local state
+        await fetchYieldData();
+        
+        // Show success toast
+        toast({
+          title: "Status Updated",
+          description: `Yield successfully marked as ${newStatus}`,
+          variant: "default"
+        });
+        
+        console.log(`Yield ${yieldId} marked as ${newStatus} in database`);
+      } else {
+        throw new Error("Failed to update yield status");
+      }
+    } catch (error) {
+      console.error("Error updating yield status:", error);
+      
+      // Show error toast
+      toast({
+        title: "Update Failed",
+        description: "Failed to update yield status. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getExpenseData = (): ExpenseCategory[] => {
@@ -1001,7 +1048,11 @@ const YieldDetails = () => {
                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
                     {yieldData.type}
                   </span>
-                  <span className={`${status === "Active" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"} px-3 py-1 rounded-full text-sm`}>
+                  <span className={`${status === "Active" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800"} px-3 py-1 rounded-full text-sm flex items-center gap-1`}>
+                    {status === "Active" ? 
+                      <CheckSquare className="h-4 w-4" /> : 
+                      <ToggleLeft className="h-4 w-4" />
+                    }
                     {status}
                   </span>
                 </div>
@@ -1028,7 +1079,7 @@ const YieldDetails = () => {
                   ) : (
                     <>
                       <PieChartIcon className="h-5 w-5" />
-                      Financial Analytics
+                  Financial Analytics
                     </>
                   )}
                 </Button>
@@ -1074,11 +1125,11 @@ const YieldDetails = () => {
 
               <Card className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="bg-orange-100 p-2 rounded-full">
-                    <Activity className="h-5 w-5 text-orange-600" />
+                  <div className={`${status === "Active" ? "bg-orange-100" : "bg-red-100"} p-2 rounded-full`}>
+                    <Activity className={`h-5 w-5 ${status === "Active" ? "text-orange-600" : "text-red-600"}`} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold">{status}</h3>
+                    <h3 className={`text-2xl font-bold ${status === "Active" ? "" : "text-red-600"}`}>{status}</h3>
                     <p className="text-sm text-gray-600">Yield Status</p>
                   </div>
                 </div>
@@ -1270,105 +1321,114 @@ const YieldDetails = () => {
               </div>
             ) : (
               // Regular Activities View
-              <Card className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Activities</h2>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => {
-                        setFormDataFromSpeech(null);
-                        setShowActivityForm(true);
-                      }} 
-                      className="flex items-center gap-1"
-                    >
-                      <span>+</span> Add New Entry
-                    </Button>
-                    <Button 
-                      onClick={startRecording}
-                      disabled={recording || showActivityForm}
-                      className="flex items-center gap-1"
-                    >
-                      <Mic className="h-5 w-5" />
-                      Voice Input
-                    </Button>
+            <Card className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold">Activities</h2>
+                {status === "Active" ? (
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => {
+                      setFormDataFromSpeech(null);
+                      setShowActivityForm(true);
+                    }} 
+                    className="flex items-center gap-1"
+                  >
+                    <span>+</span> Add New Entry
+                  </Button>
+                  <Button 
+                    onClick={startRecording}
+                    disabled={recording || showActivityForm}
+                    className="flex items-center gap-1"
+                  >
+                    <Mic className="h-5 w-5" />
+                    Voice Input
+                  </Button>
+                </div>
+                ) : (
+                  <div>
+                    <span className="text-amber-600 flex items-center gap-1">
+                      <ToggleLeft className="h-5 w-5" />
+                      This yield is inactive. No new activities can be added.
+                    </span>
                   </div>
-                </div>
+                )}
+              </div>
 
-                <div className="space-y-4">
-                  {yieldData.activityList.map((activity, index) => (
-                    <Card key={index} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="bg-gray-100 p-1.5 rounded">
-                              {getActivityIcon(activity.type)}
-                            </div>
-                            <span className={`px-2 py-1 rounded text-sm ${
-                              activity.type === "Cultivation" ? "bg-orange-100 text-orange-800" :
-                              activity.type === "Sowing" ? "bg-green-100 text-green-800" :
-                              activity.type === "Fertilizer" ? "bg-purple-100 text-purple-800" :
-                              activity.type === "Pesticide" ? "bg-red-100 text-red-800" :
-                              activity.type === "Irrigation" ? "bg-blue-100 text-blue-800" :
-                              activity.type === "Harvesting" ? "bg-yellow-100 text-yellow-800" :
-                              activity.type === "Financial" ? "bg-green-100 text-green-800" :
-                              "bg-gray-100 text-gray-800"
-                            }`}>
-                              {activity.type}
-                            </span>
-                            <span className="text-gray-500 text-sm">{activity.date}</span>
+              <div className="space-y-4">
+                {yieldData.activityList.map((activity, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="bg-gray-100 p-1.5 rounded">
+                            {getActivityIcon(activity.type)}
                           </div>
-                          <h3 className="font-medium">{activity.name}</h3>
-                          {activity.summary && (
-                            <p className="text-sm text-gray-600 mt-1">{activity.summary}</p>
-                          )}
-                          {activity.type === "Fertilizer" && activity.fertilizer && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              <p>Fertilizer: {activity.fertilizer.name}</p>
-                              <p>Quantity: {activity.fertilizer.quantity}</p>
-                              {activity.fertilizer.billImage && (
-                                <div className="mt-2">
-                                  <a href="#" className="text-blue-600 hover:underline">
-                                    View Bill Image
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {activity.type === "Pesticide" && activity.pesticide && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              <p>Pesticide: {activity.pesticide.name}</p>
-                              <p>Quantity: {activity.pesticide.quantity}</p>
-                              {activity.pesticide.billImage && (
-                                <div className="mt-2">
-                                  <a href="#" className="text-blue-600 hover:underline">
-                                    View Bill Image
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {activity.type === "Financial" && activity.financial && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              <p>Category: {activity.financial.category}</p>
-                              <p>Payment Method: {activity.financial.paymentMethod}</p>
-                              {activity.financial.receiptImage && (
-                                <div className="mt-2">
-                                  <a href="#" className="text-blue-600 hover:underline">
-                                    View Receipt
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          <span className={`px-2 py-1 rounded text-sm ${
+                            activity.type === "Cultivation" ? "bg-orange-100 text-orange-800" :
+                            activity.type === "Sowing" ? "bg-green-100 text-green-800" :
+                            activity.type === "Fertilizer" ? "bg-purple-100 text-purple-800" :
+                            activity.type === "Pesticide" ? "bg-red-100 text-red-800" :
+                            activity.type === "Irrigation" ? "bg-blue-100 text-blue-800" :
+                            activity.type === "Harvesting" ? "bg-yellow-100 text-yellow-800" :
+                            activity.type === "Financial" ? "bg-green-100 text-green-800" :
+                            "bg-gray-100 text-gray-800"
+                          }`}>
+                            {activity.type}
+                          </span>
+                          <span className="text-gray-500 text-sm">{activity.date}</span>
                         </div>
-                        <div className="text-right">
-                          <span className="text-lg font-semibold">₹{activity.expense}</span>
-                        </div>
+                        <h3 className="font-medium">{activity.name}</h3>
+                        {activity.summary && (
+                          <p className="text-sm text-gray-600 mt-1">{activity.summary}</p>
+                        )}
+                        {activity.type === "Fertilizer" && activity.fertilizer && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>Fertilizer: {activity.fertilizer.name}</p>
+                            <p>Quantity: {activity.fertilizer.quantity}</p>
+                            {activity.fertilizer.billImage && (
+                              <div className="mt-2">
+                                <a href="#" className="text-blue-600 hover:underline">
+                                  View Bill Image
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {activity.type === "Pesticide" && activity.pesticide && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>Pesticide: {activity.pesticide.name}</p>
+                            <p>Quantity: {activity.pesticide.quantity}</p>
+                            {activity.pesticide.billImage && (
+                              <div className="mt-2">
+                                <a href="#" className="text-blue-600 hover:underline">
+                                  View Bill Image
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {activity.type === "Financial" && activity.financial && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>Category: {activity.financial.category}</p>
+                            <p>Payment Method: {activity.financial.paymentMethod}</p>
+                            {activity.financial.receiptImage && (
+                              <div className="mt-2">
+                                <a href="#" className="text-blue-600 hover:underline">
+                                  View Receipt
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              </Card>
+                      <div className="text-right">
+                        <span className="text-lg font-semibold">₹{activity.expense}</span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </Card>
             )}
 
             {showActivityForm && (

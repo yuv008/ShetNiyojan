@@ -284,20 +284,35 @@ def get_yields(current_user):
 @token_required
 def get_yield(current_user, yield_id):
     try:
-        # First, validate that the yield exists and belongs to the user
-        yield_item = yields_collection.find_one({"_id": ObjectId(yield_id), "userId": current_user["_id"]})
+        print(f"Fetching yield {yield_id} for user {current_user.get('_id')}")
         
-        if not yield_item:
-            return jsonify({"error": "Yield not found or access denied"}), 404
+        # Find the yield by ID
+        yield_obj = yields_collection.find_one({"_id": ObjectId(yield_id)})
+        
+        if not yield_obj:
+            print(f"Yield {yield_id} not found")
+            return jsonify({"status": "error", "message": "Yield not found"}), 404
+        
+        print(f"Found yield data: {yield_obj}")
+        
+        # Prepare response by converting ObjectId to string
+        yield_data = {k: str(v) if isinstance(v, ObjectId) else v for k, v in yield_obj.items()}
+        
+        # Ensure status is included in the response
+        if 'status' not in yield_data or not yield_data['status']:
+            yield_data['status'] = 'Active'  # Default to Active if not set
             
-        # Convert ObjectId to string for JSON serialization
-        yield_item['id'] = str(yield_item.pop('_id'))
-        if 'userId' in yield_item:
-            yield_item['userId'] = str(yield_item['userId'])
-            
-        return jsonify(yield_item), 200
+        # Ensure activityStatus is included and matches status
+        yield_data['activityStatus'] = yield_data['status']
+        
+        print(f"Returning yield data with status: {yield_data['status']}")
+        
+        return jsonify(yield_data), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error fetching yield: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/yields', methods=['POST'])
 def create_yield():
@@ -350,43 +365,81 @@ def create_yield():
 def update_yield(current_user, yield_id):
     try:
         data = request.json
+        print(f"Updating yield {yield_id} with data: {data}")
         
-        # Check if yield exists and belongs to user
-        existing_yield = yields_collection.find_one({"_id": ObjectId(yield_id), "userId": current_user["_id"]})
-        if not existing_yield:
-            return jsonify({"error": "Yield not found or access denied"}), 404
-            
-        # Update fields
+        if not yield_id:
+            return jsonify({"status": "error", "message": "Yield ID is required"}), 400
+        
+        # Find the yield by ID - use the correct collection variable
+        yield_obj = yields_collection.find_one({"_id": ObjectId(yield_id)})
+        
+        if not yield_obj:
+            print(f"Yield {yield_id} not found")
+            return jsonify({"status": "error", "message": "Yield not found"}), 404
+        
+        print(f"Original yield data: {yield_obj}")
+        
+        # Check if the yield belongs to the current user
+        if str(yield_obj.get('userId')) != str(current_user.get('_id')):
+            print(f"Authorization failed: Yield belongs to {yield_obj.get('userId')}, but current user is {current_user.get('_id')}")
+            return jsonify({"status": "error", "message": "Unauthorized to update this yield"}), 403
+        
+        # Process update data
         update_data = {}
-        if 'name' in data:
-            update_data['name'] = data['name']
-        if 'acres' in data:
-            update_data['acres'] = float(data['acres'])
+        
+        # Handle status update specifically
         if 'status' in data:
             update_data['status'] = data['status']
-        if 'health' in data:
-            update_data['health'] = data['health']
-        if 'plantDate' in data:
-            update_data['plantDate'] = data['plantDate']
+            print(f"Updating yield status to: {data['status']}")
             
+            # Also update the associated activityStatus
+            update_data['activityStatus'] = data['status']
+        
+        # Handle other field updates
+        allowed_fields = ['name', 'type', 'description', 'daysRemain', 'expense']
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+        
+        # If no fields to update, return error
+        if not update_data:
+            print("No fields to update")
+            return jsonify({"status": "error", "message": "No fields to update"}), 400
+        
         # Add updatedAt timestamp
         update_data['updatedAt'] = datetime.now()
         
-        # Update in database
-        yields_collection.update_one(
+        print(f"Final update data: {update_data}")
+        
+        # Update the yield - use the correct collection variable
+        result = yields_collection.update_one(
             {"_id": ObjectId(yield_id)},
             {"$set": update_data}
         )
         
-        # Return updated yield
-        updated_yield = yields_collection.find_one({"_id": ObjectId(yield_id)})
-        updated_yield['id'] = str(updated_yield.pop('_id'))
-        if 'userId' in updated_yield:
-            updated_yield['userId'] = str(updated_yield['userId'])
-        
-        return jsonify(updated_yield), 200
+        if result.modified_count > 0:
+            print(f"Successfully updated yield {yield_id}, modified count: {result.modified_count}")
+            # Fetch and return the updated yield data
+            updated_yield = yields_collection.find_one({"_id": ObjectId(yield_id)})
+            print(f"Updated yield data: {updated_yield}")
+            return jsonify({
+                "status": "success",
+                "message": "Yield updated successfully",
+                "data": {
+                    "yield_id": yield_id,
+                    "updated_fields": list(update_data.keys()),
+                    "status": updated_yield.get("status", "Unknown")
+                }
+            }), 200
+        else:
+            print(f"Yield not modified. Result: {result}")
+            return jsonify({"status": "error", "message": "Yield not modified"}), 400
+            
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error updating yield: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route('/api/yields/<yield_id>', methods=['DELETE'])
