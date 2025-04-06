@@ -169,7 +169,11 @@ The project follows a client-server architecture:
 - Community features for knowledge sharing
 
 ## Contributors
-- (List of contributors)
+- Gopal Dose
+- Yuvraj Sanghai
+- Shreeshail Chavan
+- Viraj Mane
+- Ninad Suryawanshi
 
 ## License
 This project is licensed under the MIT License. 
