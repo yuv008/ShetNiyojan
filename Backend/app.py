@@ -1695,7 +1695,7 @@ def get_groq_insights(soil_params, soil_type, location, land_area, model_name="l
 
 # Routes
 
-@app.route('/predict-fertilizer', methods=['POST'])
+@app.route('/api/predict-fertilizer', methods=['POST'])
 def predict_fertilizer():
     try:
         data = request.get_json()
@@ -1739,14 +1739,36 @@ def predict_fertilizer():
 
 
 # farmwers activity via mobile
-@app.route('/api/mobile-activity',methods=['POST'])
+
+@app.route('/api/mobile-activity', methods=['POST'])
 def mobile_activity():
     data = request.get_json()
-    text = data['text']
+    required_fields = ['mobileno', 'yield_id', 'text']
+
+    # Check for missing required fields
+    if not all(field in data for field in required_fields):
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    text = data['text'].strip()
     if text == '':
-        return jsonify({'message':'No actibity added'}) , 401
+        return jsonify({'message': 'No activity added'}), 400
+
     try:
-        prompt = f"""
+        user = users_collection.find_one({'mobileno': data['mobileno']})
+        if not user:
+            return jsonify({'message': 'User not found'}), 404
+
+        yieldObj = yields_collection.find_one({
+            '_id': ObjectId(data['yield_id']),
+            'userId': user['_id']
+        })
+        if not yieldObj:
+            return jsonify({'message': 'Yield not found'}), 404
+
+    except Exception as e:
+        return jsonify({'message': f'Failed to retrieve user/yield: {str(e)}'}), 500
+
+    prompt = f"""
     Categorize the following agricultural text input and extract structured activity details:
 
     "{text}"
@@ -1760,41 +1782,44 @@ def mobile_activity():
     }}
 
     Please strictly return only the valid JSON. No extra explanation, no surrounding text — only a clean JSON object.
-"""
+    """
 
-
-        # Initialize Groq client with API key
+    try:
+        # Initialize Groq client
         client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
         # Make the chat completion request
         chat_completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama3-70b-8192",  # Correct model ID
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant with deep agricultural and plant pathology knowledge."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": "You are an intelligent agricultural assistant."},
+                {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_completion_tokens=1024,
-            top_p=1,
-            stop=None,
-            stream=False
+            max_tokens=1024,
+            top_p=1.0
         )
 
-# Extract the response
+        # Extract and parse JSON response
         detailed_info = chat_completion.choices[0].message.content.strip()
+        activity_data = json.loads(detailed_info)
 
+        # Save activity
+        activities_collection.insert_one({
+            'userId': user['_id'],
+            'yieldId': yieldObj['_id'],
+            'activity_name': activity_data.get("activity_name"),
+            'activity_type': activity_data.get("activity_type"),
+            'summary': activity_data.get("summary"),
+            'amount': float(activity_data.get("amount", 0))
+        })
 
-        return jsonify({
+        return jsonify({'message': 'Activity created successfully'}), 201
 
-        }), 200
-    except:
-        return jsonify({"message","Failed to create activity"}) , 401
+    except json.JSONDecodeError:
+        return jsonify({'message': 'Invalid response format from AI model'}), 500
+    except Exception as e:
+        return jsonify({'message': f'Failed to create activity: {str(e)}'}), 500
 
 
 # Call the seed function at startup
