@@ -254,7 +254,7 @@ def crop_recommendation():
         - Humidity: {data['humidity']}%
         - Location: {data['location']}
 
-        Please provide a response in the following STRICT JSON format:
+        Please provide a response in the following STRICT JSON format and  the json keys should not have whitespace and they should be in camelcase:
         {{
             "Best Recommended Crop": "<single crop name>",
             "Alternative Crops": ["<crop1>", "<crop2>", "<crop3>"],
