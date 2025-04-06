@@ -13,6 +13,7 @@ from datetime import datetime
 from bson import ObjectId
 from functools import wraps
 import pickle as pkl
+import re
 from plant_disease_model import predict_disease
 from flask_cors import CORS
 import os
@@ -224,43 +225,103 @@ def plant_disease_analysis():
             "analysis": detailed_info
         }), 200
 
-    
+
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 # ------------------ Crop Recommendation ------------------
 @app.route('/api/crop-recommendation', methods=['POST'])
-@token_required
-def crop_recommendation(current_user):
-    REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+def crop_recommendation():
+    REQUIRED_FIELDS = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall", "location"]
 
-    # Validate input JSON
     data = request.get_json()
     missing_fields = [field for field in REQUIRED_FIELDS if field not in data]
     if missing_fields:
         return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
 
     try:
-        # Load models (open the file first, then pass to pickle.load)
-        model_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'crop_recommendation_model.pkl')
-        scaler_path = os.path.join(os.getcwd(), 'models', 'crop_recommendation', 'minmaxscaler_crop_recommendation.pkl')
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-        with open(model_path, 'rb') as f:
-            crop_recommend_model = pkl.load(f)
+        prompt = f"""
+        Given the following agricultural parameters, recommend suitable crops and provide detailed guidance:
 
-        with open(scaler_path, 'rb') as f:
-            crop_scaler = pkl.load(f)
+        - Nitrogen: {data['N']}
+        - Phosphorus: {data['P']}
+        - Potassium: {data['K']}
+        - Temperature: {data['temperature']}°C
+        - pH: {data['ph']}
+        - Rainfall: {data['rainfall']} mm
+        - Humidity: {data['humidity']}%
+        - Location: {data['location']}
 
-        # Prepare and scale input data
-        df = pd.DataFrame([data])
-        scaled_data = crop_scaler.transform(df)
+        Please provide a response in the following STRICT JSON format:
+        {{
+            "Best Recommended Crop": "<single crop name>",
+            "Alternative Crops": ["<crop1>", "<crop2>", "<crop3>"],
+            "Recommendations": "<brief advice on farming practices>",
+            "Estimated Yield": "<numeric value and unit>",
+            "Environmental Suitability": "<concise sentence on climate suitability>",
+            "Additional Crops": [
+                {{
+                    "Crop": "<name>",
+                    "Suitability Score": "<1 to 100>",
+                    "Water Requirement": "<low/medium/high>",
+                    "Growth Period": "<e.g. 90-120 days>"
+                }},
+                {{
+                    "Crop": "<name>",
+                    "Suitability Score": "<1 to 100>",
+                    "Water Requirement": "<low/medium/high>",
+                    "Growth Period": "<e.g. 90-120 days>"
+                }},
+                {{
+                    "Crop": "<name>",
+                    "Suitability Score": "<1 to 100>",
+                    "Water Requirement": "<low/medium/high>",
+                    "Growth Period": "<e.g. 90-120 days>"
+                }}
+            ]
+        }}
 
-        # Predict
-        prediction = crop_recommend_model.predict(scaled_data)[0]
-        return jsonify({'recommended_crop': prediction}), 201
+        Please return only valid JSON. Do not include any other text or explanation.
+        """
+
+        chat_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",  # replace with your available Groq model
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert agricultural assistant providing recommendations for crop planning based on soil and climate data. You must return STRICTLY VALID JSON in the structure requested."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.4,
+            max_completion_tokens=1024,
+            top_p=1,
+            stream=False
+        )
+
+        # Get model output
+        response_text = chat_completion.choices[0].message.content.strip()
+
+        # Extract only JSON using regex
+        json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+        if not json_match:
+            return jsonify({'error': 'Failed to extract JSON from model response'}), 500
+
+        clean_json = json_match.group(0)
+        parsed_response = json.loads(clean_json)
+
+        return jsonify(parsed_response), 200
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 
 # ------------------ Yield Management ------------------
 @app.route('/api/yields', methods=['GET'])
