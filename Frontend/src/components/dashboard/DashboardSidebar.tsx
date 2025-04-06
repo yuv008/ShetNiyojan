@@ -7,9 +7,14 @@ interface SidebarItem {
   icon: any;
   path: string;
   position?: "top" | "bottom";
+  label?: string;
 }
 
-const DashboardSidebar = () => {
+interface DashboardSidebarProps {
+  isMobile?: boolean;
+}
+
+const DashboardSidebar = ({ isMobile = false }: DashboardSidebarProps) => {
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -17,12 +22,36 @@ const DashboardSidebar = () => {
   };
 
   const items: SidebarItem[] = [
-    { icon: Home, path: "/dashboard", position: "top" },
-    { icon: Truck, path: "/supply-chain", position: "top" },
-    { icon: Settings, path: "/dashboard/settings", position: "bottom" },
-    { icon: User, path: "/dashboard/profile", position: "bottom" },
+    { icon: Home, path: "/dashboard", position: "top", label: "Home" },
+    { icon: Truck, path: "/supply-chain", position: "top", label: "Supply" },
+    { icon: Settings, path: "/dashboard/settings", position: "bottom", label: "Settings" },
+    { icon: User, path: "/dashboard/profile", position: "bottom", label: "Profile" },
   ];
 
+  // For mobile view, show all items in a horizontal layout
+  if (isMobile) {
+    return (
+      <div className="w-full flex items-center justify-around py-2">
+        {items.map((item, index) => (
+          <Link
+            key={index}
+            to={item.path}
+            className={cn(
+              "flex flex-col items-center justify-center p-1",
+              isActive(item.path)
+                ? "text-agrigreen"
+                : "text-gray-500"
+            )}
+          >
+            <item.icon className="w-5 h-5 mb-1" />
+            <span className="text-xs">{item.label}</span>
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
+  // Desktop sidebar view (vertical)
   return (
     <div className="bg-white shadow rounded-lg flex flex-col items-center justify-between py-4 h-full min-h-[calc(100vh-32px)]">
       <div className="flex flex-col items-center space-y-6">

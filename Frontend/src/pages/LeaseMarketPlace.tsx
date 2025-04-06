@@ -259,49 +259,49 @@ const LeaseMarketplace: React.FC = () => {
 
   return (
     <div className="bg-agriBg min-h-screen w-full">
-      <div className="w-full h-full p-4">
+      <div className="w-full h-full p-2 sm:p-4">
         <DashboardHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
 
         {/* Main Grid */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* Sidebar */}
-          <div className="col-span-1 h-[calc(100vh-2rem)]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4">
+          {/* Sidebar - Hidden on mobile, visible on md screens and up */}
+          <div className="hidden md:block md:col-span-1">
             <DashboardSidebar />
           </div>
 
-      {/* Main Content */}
-          <div className="col-span-11">
+          {/* Main Content */}
+          <div className="col-span-1 md:col-span-11">
             {/* Header */}
-            <div className="mb-6 flex justify-between items-center">
+            <div className="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-3 sm:gap-0">
               <div>
-                <h1 className="text-3xl font-bold text-agrigreen mb-2">Farm Equipment Leasing</h1>
-                <p className="text-gray-600">Rent high-quality agricultural equipment from farmers in your area</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-agrigreen mb-1 md:mb-2">Farm Equipment Leasing</h1>
+                <p className="text-sm md:text-base text-gray-600">Rent high-quality agricultural equipment from farmers in your area</p>
               </div>
               
               {user && (
                 <Button 
                   onClick={() => setShowAddItemModal(true)}
-                  className="bg-agrigreen hover:bg-agrigreen-dark"
+                  className="bg-agrigreen hover:bg-agrigreen-dark self-start sm:self-auto text-xs sm:text-sm whitespace-nowrap"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your Equipment
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  Add Equipment
                 </Button>
               )}
             </div>
 
             {/* Search Bar and Filters */}
-            <div className="mb-6">
-              <div className="flex gap-2 mb-4">
+            <div className="mb-4 md:mb-6">
+              <div className="flex flex-col sm:flex-row gap-2 mb-3 md:mb-4">
                 <div className="relative flex-1">
                   <Input
                     type="text"
                     placeholder="Search equipment..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="pr-10"
+                    className="pr-10 text-sm"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleSearch();
@@ -311,98 +311,100 @@ const LeaseMarketplace: React.FC = () => {
                 </div>
                 <Button 
                   onClick={handleSearch}
-                  className="bg-agrigreen hover:bg-agrigreen-dark"
+                  className="bg-agrigreen hover:bg-agrigreen-dark text-xs sm:text-sm"
                 >
-                  <Search className="w-4 h-4 mr-2" />
+                  <Search className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                   Search
                 </Button>
-          </div>
+              </div>
 
               {/* Category Filters */}
-              <div className="flex flex-wrap gap-2">
-                {categories.map(category => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    className={`text-xs h-8 px-3 ${
-                      selectedCategory === category ? "bg-agrigreen hover:bg-agrigreen-dark" : ""
-                    }`}
-                    onClick={() => handleCategoryFilter(category)}
-                  >
-                    {category}
-                  </Button>
-                ))}
-                {selectedCategory && (
-                  <Button
-                    variant="outline"
-                    className="text-xs h-8 px-3 text-gray-600"
-                    onClick={() => setSelectedCategory(null)}
-                  >
-                    Clear Filter
-                  </Button>
-                )}
+              <div className="overflow-x-auto pb-2 -mx-2 px-2">
+                <div className="flex flex-nowrap gap-1 sm:gap-2 min-w-max">
+                  {categories.map(category => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? "default" : "outline"}
+                      className={`text-xs h-6 sm:h-8 px-2 sm:px-3 ${
+                        selectedCategory === category ? "bg-agrigreen hover:bg-agrigreen-dark" : ""
+                      }`}
+                      onClick={() => handleCategoryFilter(category)}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                  {selectedCategory && (
+                    <Button
+                      variant="outline"
+                      className="text-xs h-6 sm:h-8 px-2 sm:px-3 text-gray-600"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Equipment Grid */}
             {isLoading ? (
               <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-agrigreen" />
+                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-agrigreen" />
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                 {filteredEquipment.length > 0 ? (
                   filteredEquipment.map(item => (
                     <Card key={item._id || item.id} className="overflow-hidden">
-                      <div className="h-32 overflow-hidden">
+                      <div className="h-28 sm:h-32 overflow-hidden">
                         <img 
                           src={item.imageUrl} 
                           alt={item.name} 
                           className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                         />
                       </div>
-                      <div className="p-3">
+                      <div className="p-2 sm:p-3">
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-semibold text-sm">{item.name}</h3>
-                          <div className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          <h3 className="font-semibold text-xs sm:text-sm">{item.name}</h3>
+                          <div className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium ${
                             item.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                             {item.available ? 'Available' : 'Leased'}
-                    </div>
+                          </div>
                         </div>
                         
                         <div className="flex items-center my-1">
-                          <MapPin className="w-3 h-3 text-gray-500 mr-1" />
-                          <span className="text-xs text-gray-500">{item.location}</span>
+                          <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-500 mr-1" />
+                          <span className="text-[10px] sm:text-xs text-gray-500">{item.location}</span>
                         </div>
                         
-                        <div className="flex items-center mb-2">
-                          <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                          <span className="text-xs font-medium">{item.rating || 4.5}</span>
-                          <span className="text-xs text-gray-500 ml-1">({item.reviews || 10})</span>
+                        <div className="flex items-center mb-1 sm:mb-2">
+                          <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 mr-1" />
+                          <span className="text-[10px] sm:text-xs font-medium">{item.rating || 4.5}</span>
+                          <span className="text-[10px] sm:text-xs text-gray-500 ml-1">({item.reviews || 10})</span>
                         </div>
                         
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs text-gray-600">Hourly Rate:</span>
-                          <span className="font-semibold text-sm text-agrigreen">₹{item.pricePerHour}/hr</span>
+                        <div className="flex justify-between items-center mb-1 sm:mb-2">
+                          <span className="text-[10px] sm:text-xs text-gray-600">Hourly Rate:</span>
+                          <span className="font-semibold text-xs sm:text-sm text-agrigreen">₹{item.pricePerHour}/hr</span>
                         </div>
                         
                         <Button 
                           variant="outline" 
-                          className="w-full text-xs h-8 flex items-center justify-center"
+                          className="w-full text-[10px] sm:text-xs h-6 sm:h-8 flex items-center justify-center"
                           onClick={() => handleCallOwner(item.ownerContact)}
                         >
-                          <Phone className="w-3 h-3 mr-1" />
+                          <Phone className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
                           Call Owner
                         </Button>
                       </div>
                     </Card>
                   ))
                 ) : (
-                  <div className="col-span-4 flex justify-center items-center h-64 bg-white rounded-lg shadow">
-                    <div className="text-center">
-                      <h3 className="text-lg font-medium text-gray-700 mb-2">No equipment found</h3>
-                      <p className="text-gray-500">Try adjusting your search or filters</p>
+                  <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 flex justify-center items-center h-48 sm:h-64 bg-white rounded-lg shadow">
+                    <div className="text-center p-4">
+                      <h3 className="text-base sm:text-lg font-medium text-gray-700 mb-1 sm:mb-2">No equipment found</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">Try adjusting your search or filters</p>
                     </div>
                   </div>
                 )}
@@ -414,25 +416,25 @@ const LeaseMarketplace: React.FC = () => {
 
       {/* Add Item Modal */}
       {showAddItemModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full shadow-xl">
-            <div className="relative p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="relative p-3 sm:p-6">
               <button 
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                className="absolute top-2 sm:top-4 right-2 sm:right-4 text-gray-500 hover:text-gray-700"
                 onClick={() => setShowAddItemModal(false)}
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
               
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Add Equipment for Rent</h3>
-                <p className="text-gray-600">Share your equipment with farmers in your area</p>
+              <div className="text-center mb-4 sm:mb-6">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800">Add Equipment for Rent</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Share your equipment with farmers in your area</p>
               </div>
               
               <form onSubmit={handleAddItem}>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <Label htmlFor="name">Equipment Name *</Label>
+                    <Label htmlFor="name" className="text-xs sm:text-sm">Equipment Name *</Label>
                     <Input
                       id="name"
                       name="name"
@@ -440,18 +442,19 @@ const LeaseMarketplace: React.FC = () => {
                       onChange={handleInputChange}
                       placeholder="e.g., John Deere 5E Tractor"
                       required
+                      className="text-xs sm:text-sm mt-1 h-8 sm:h-10"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="category">Category *</Label>
+                    <Label htmlFor="category" className="text-xs sm:text-sm">Category *</Label>
                     <Select onValueChange={handleCategorySelect}>
-                      <SelectTrigger id="category">
+                      <SelectTrigger id="category" className="text-xs sm:text-sm mt-1 h-8 sm:h-10">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map(category => (
-                          <SelectItem key={category} value={category}>
+                          <SelectItem key={category} value={category} className="text-xs sm:text-sm">
                             {category}
                           </SelectItem>
                         ))}
@@ -460,7 +463,7 @@ const LeaseMarketplace: React.FC = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="description">Description *</Label>
+                    <Label htmlFor="description" className="text-xs sm:text-sm">Description *</Label>
                     <Textarea
                       id="description"
                       name="description"
@@ -469,12 +472,13 @@ const LeaseMarketplace: React.FC = () => {
                       placeholder="Describe your equipment (specifications, condition, etc.)"
                       required
                       rows={3}
+                      className="text-xs sm:text-sm mt-1"
                     />
-            </div>
+                  </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-              <div>
-                      <Label htmlFor="pricePerHour">Hourly Rate (₹) *</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                      <Label htmlFor="pricePerHour" className="text-xs sm:text-sm">Hourly Rate (₹) *</Label>
                       <Input
                         id="pricePerHour"
                         name="pricePerHour"
@@ -484,11 +488,12 @@ const LeaseMarketplace: React.FC = () => {
                         placeholder="e.g., 350"
                         required
                         min="1"
+                        className="text-xs sm:text-sm mt-1 h-8 sm:h-10"
                       />
-              </div>
+                    </div>
                     
-              <div>
-                      <Label htmlFor="location">Location *</Label>
+                    <div>
+                      <Label htmlFor="location" className="text-xs sm:text-sm">Location *</Label>
                       <Input
                         id="location"
                         name="location"
@@ -496,12 +501,13 @@ const LeaseMarketplace: React.FC = () => {
                         onChange={handleInputChange}
                         placeholder="e.g., Pune, Maharashtra"
                         required
+                        className="text-xs sm:text-sm mt-1 h-8 sm:h-10"
                       />
                     </div>
-              </div>
+                  </div>
                   
-              <div>
-                    <Label htmlFor="imageUrl">Image URL *</Label>
+                  <div>
+                    <Label htmlFor="imageUrl" className="text-xs sm:text-sm">Image URL *</Label>
                     <Input
                       id="imageUrl"
                       name="imageUrl"
@@ -509,9 +515,10 @@ const LeaseMarketplace: React.FC = () => {
                       onChange={handleImageUrlChange}
                       placeholder="https://example.com/image.jpg"
                       required
+                      className="text-xs sm:text-sm mt-1 h-8 sm:h-10"
                     />
                     {newItem.imageUrl && (
-                      <div className="mt-2 h-32 rounded-md overflow-hidden">
+                      <div className="mt-2 h-24 sm:h-32 rounded-md overflow-hidden">
                         <img 
                           src={newItem.imageUrl}
                           alt="Equipment preview" 
@@ -523,40 +530,48 @@ const LeaseMarketplace: React.FC = () => {
                         />
                       </div>
                     )}
-              </div>
-            </div>
+                  </div>
+                </div>
                 
-                <div className="mt-6 flex gap-3">
+                <div className="mt-4 sm:mt-6 flex gap-2 sm:gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm h-8 sm:h-10"
                     onClick={() => setShowAddItemModal(false)}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 bg-agrigreen hover:bg-agrigreen-dark"
+                    className="flex-1 bg-agrigreen hover:bg-agrigreen-dark text-xs sm:text-sm h-8 sm:h-10"
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                         Adding...
                       </>
                     ) : (
                       <>
+                        <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                         Add Equipment
                       </>
                     )}
                   </Button>
-          </div>
+                </div>
               </form>
             </div>
           </div>
         </div>
       )}
+
+      {/* Mobile Navigation Sidebar - Visible only on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-40">
+        <div className="flex justify-around py-2">
+          <DashboardSidebar isMobile={true} />
+        </div>
+      </div>
     </div>
   );
 };

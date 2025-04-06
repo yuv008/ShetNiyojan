@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { X } from "lucide-react"; 
  
 interface ActivityFormProps {
   onClose: () => void;
@@ -120,21 +121,24 @@ const ActivityForm = ({ onClose, onSubmit, audioData }: ActivityFormProps) => {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="w-[95vw] max-w-[500px] rounded-lg p-4 md:p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-2">
+          <DialogTitle className="text-lg md:text-xl">
             {audioData ? "Confirm Voice Entry" : "Add New Activity"}
           </DialogTitle>
-        </DialogHeader>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="type">Activity Type</Label>
+        <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4 mt-2">
+          <div className="space-y-1.5 md:space-y-2">
+            <Label htmlFor="type" className="text-sm md:text-base">Activity Type</Label>
             <Select
               value={formData.type}
               onValueChange={(value) => handleChange("type", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-9 md:h-10">
                 <SelectValue placeholder="Select activity type" />
               </SelectTrigger>
               <SelectContent>
@@ -147,25 +151,27 @@ const ActivityForm = ({ onClose, onSubmit, audioData }: ActivityFormProps) => {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">Activity Name</Label>
+          <div className="space-y-1.5 md:space-y-2">
+            <Label htmlFor="name" className="text-sm md:text-base">Activity Name</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="Enter activity name"
+              className="h-9 md:h-10"
             />
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="expense">Amount (₹)</Label>
+          <div className="space-y-1.5 md:space-y-2">
+            <div className="flex items-center justify-between mb-1">
+              <Label htmlFor="expense" className="text-sm md:text-base">Amount (₹)</Label>
               <div className="flex items-center gap-2">
-                <Label htmlFor="isExpense" className="text-sm">Is Expense</Label>
+                <Label htmlFor="isExpense" className="text-xs md:text-sm">Is Expense</Label>
                 <Switch 
                   id="isExpense" 
                   checked={formData.isExpense}
                   onCheckedChange={(checked) => handleChange("isExpense", checked)}
+                  className="h-4 md:h-5"
                 />
               </div>
             </div>
@@ -175,96 +181,104 @@ const ActivityForm = ({ onClose, onSubmit, audioData }: ActivityFormProps) => {
               value={formData.expense}
               onChange={(e) => handleChange("expense", e.target.value)}
               placeholder="Enter amount"
+              className="h-9 md:h-10"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="summary">Summary</Label>
+          <div className="space-y-1.5 md:space-y-2">
+            <Label htmlFor="summary" className="text-sm md:text-base">Summary</Label>
             <Textarea
               id="summary"
               value={formData.summary}
               onChange={(e) => handleChange("summary", e.target.value)}
               placeholder="Enter activity summary"
+              className="h-20 resize-none"
             />
           </div>
 
           {showFertilizerFields && (
-            <div className="space-y-4 border-t pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="fertilizerName">Fertilizer Name</Label>
+            <div className="space-y-3 md:space-y-4 border-t pt-3 md:pt-4">
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="fertilizerName" className="text-sm md:text-base">Fertilizer Name</Label>
                 <Input
                   id="fertilizerName"
                   value={formData.fertilizer.name}
                   onChange={(e) => handleSpecialFieldChange("fertilizer", "name", e.target.value)}
                   placeholder="Enter fertilizer name"
+                  className="h-9 md:h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fertilizerQuantity">Quantity</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="fertilizerQuantity" className="text-sm md:text-base">Quantity</Label>
                 <Input
                   id="fertilizerQuantity"
                   value={formData.fertilizer.quantity}
                   onChange={(e) => handleSpecialFieldChange("fertilizer", "quantity", e.target.value)}
                   placeholder="Enter quantity (e.g., 50kg)"
+                  className="h-9 md:h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fertilizerBill">Upload Bill Image</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="fertilizerBill" className="text-sm md:text-base">Upload Bill Image</Label>
                 <Input
                   id="fertilizerBill"
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleFileChange("fertilizer", e)}
+                  className="h-9 md:h-10 text-xs md:text-sm"
                 />
               </div>
             </div>
           )}
 
           {showPesticideFields && (
-            <div className="space-y-4 border-t pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="pesticideName">Pesticide Name</Label>
+            <div className="space-y-3 md:space-y-4 border-t pt-3 md:pt-4">
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="pesticideName" className="text-sm md:text-base">Pesticide Name</Label>
                 <Input
                   id="pesticideName"
                   value={formData.pesticide.name}
                   onChange={(e) => handleSpecialFieldChange("pesticide", "name", e.target.value)}
                   placeholder="Enter pesticide name"
+                  className="h-9 md:h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pesticideQuantity">Quantity</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="pesticideQuantity" className="text-sm md:text-base">Quantity</Label>
                 <Input
                   id="pesticideQuantity"
                   value={formData.pesticide.quantity}
                   onChange={(e) => handleSpecialFieldChange("pesticide", "quantity", e.target.value)}
                   placeholder="Enter quantity (e.g., 5L)"
+                  className="h-9 md:h-10"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="pesticideBill">Upload Bill Image</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="pesticideBill" className="text-sm md:text-base">Upload Bill Image</Label>
                 <Input
                   id="pesticideBill"
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleFileChange("pesticide", e)}
+                  className="h-9 md:h-10 text-xs md:text-sm"
                 />
               </div>
             </div>
           )}
           
           {showFinancialFields && (
-            <div className="space-y-4 border-t pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="financialCategory">Financial Category</Label>
+            <div className="space-y-3 md:space-y-4 border-t pt-3 md:pt-4">
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="financialCategory" className="text-sm md:text-base">Financial Category</Label>
                 <Select
                   value={formData.financial.category}
                   onValueChange={(value) => handleSpecialFieldChange("financial", "category", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 md:h-10">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -277,13 +291,13 @@ const ActivityForm = ({ onClose, onSubmit, audioData }: ActivityFormProps) => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Payment Method</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="paymentMethod" className="text-sm md:text-base">Payment Method</Label>
                 <Select
                   value={formData.financial.paymentMethod}
                   onValueChange={(value) => handleSpecialFieldChange("financial", "paymentMethod", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 md:h-10">
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -296,23 +310,24 @@ const ActivityForm = ({ onClose, onSubmit, audioData }: ActivityFormProps) => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="financialReceipt">Upload Receipt</Label>
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="financialReceipt" className="text-sm md:text-base">Upload Receipt</Label>
                 <Input
                   id="financialReceipt"
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleFileChange("financial", e)}
+                  className="h-9 md:h-10 text-xs md:text-sm"
                 />
               </div>
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex justify-end gap-2 pt-3 md:pt-4">
+            <Button type="button" variant="outline" onClick={onClose} className="h-8 md:h-10 text-xs md:text-sm px-3 md:px-4">
               Cancel
             </Button>
-            <Button type="submit">
+            <Button type="submit" className="h-8 md:h-10 text-xs md:text-sm px-3 md:px-4">
               {audioData ? "Confirm Activity" : "Add Activity"}
             </Button>
           </div>

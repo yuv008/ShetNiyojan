@@ -730,7 +730,7 @@ const YieldDetails = () => {
     setTranscript("");
     setProcessingVoice(false);
     setRecording(true);
-    setCountdown(5);
+    setCountdown(10); // Increase countdown time to give users more time to speak
     
     // Start countdown timer
     countdownRef.current = setInterval(() => {
@@ -750,7 +750,7 @@ const YieldDetails = () => {
               // Short delay to ensure all speech has been processed
               setTimeout(() => {
                 processTranscript(transcript);
-              }, 500);
+              }, 1000); // Increased delay to ensure transcript is complete
             } catch (error) {
               console.error("Error stopping speech recognition:", error);
             }
@@ -761,19 +761,70 @@ const YieldDetails = () => {
       });
     }, 1000);
     
-    // Start the speech recognition
+    // Start the speech recognition with a small delay to ensure proper initialization
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.start();
-        console.log("Started recording for 5 seconds...");
+        // First make sure any previous instance is stopped
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore errors when stopping - it might not be running
+        }
+        
+        // Reset the recognition instance
+        recognitionRef.current.onend = () => {
+          console.log("Speech recognition ended normally");
+        };
+        
+        // Add a small delay before starting to ensure the recognition service is ready
+        setTimeout(() => {
+          try {
+            recognitionRef.current.start();
+            console.log("Started recording for 10 seconds...");
+            
+            // Show feedback to user
+            toast({
+              title: "Listening...",
+              description: "Please speak clearly about your farming activity.",
+              duration: 3000,
+            });
+          } catch (error) {
+            console.error("Error starting speech recognition:", error);
+            setRecording(false);
+            setCountdown(0);
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+            }
+            
+            toast({
+              title: "Error",
+              description: "Failed to start speech recognition. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }, 300); // Small delay to ensure proper initialization
       } catch (error) {
-        console.error("Error starting speech recognition:", error);
+        console.error("Error preparing speech recognition:", error);
         setRecording(false);
         setCountdown(0);
         if (countdownRef.current) {
           clearInterval(countdownRef.current);
         }
+        
+        toast({
+          title: "Error",
+          description: "Failed to initialize speech recognition. Please try again.",
+          variant: "destructive",
+        });
       }
+    } else {
+      toast({
+        title: "Not Supported",
+        description: "Speech recognition is not supported in your browser.",
+        variant: "destructive",
+      });
+      setRecording(false);
+      setCountdown(0);
     }
   };
 
@@ -1020,31 +1071,31 @@ const YieldDetails = () => {
 
   return (
     <div className="bg-agriBg min-h-screen w-full">
-      <div className="w-full h-full p-4">
+      <div className="w-full h-full p-2 sm:p-4">
         <DashboardHeader 
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
 
         {/* Main Grid */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* Sidebar */}
-          <div className="col-span-1">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4">
+          {/* Sidebar - Hidden on mobile, visible on md screens and up */}
+          <div className="hidden md:block md:col-span-1">
             <DashboardSidebar />
           </div>
 
-          {/* Main Content */}
-          <div className="col-span-11">
+          {/* Main Content - Full width on mobile, adjusted width on larger screens */}
+          <div className="col-span-1 md:col-span-11">
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-agrigreen"></div>
               </div>
             ) : (
               <>
-            <div className="mb-6 flex justify-between items-center">
+            <div className="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-3 sm:gap-0">
               <div>
-                <h1 className="text-2xl font-bold mb-2">{yieldData.name}</h1>
-                <div className="flex items-center gap-2">
+                <h1 className="text-xl md:text-2xl font-bold mb-2">{yieldData.name}</h1>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
                     {yieldData.type}
                   </span>
@@ -1057,80 +1108,82 @@ const YieldDetails = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button 
                   variant="outline" 
                   onClick={toggleStatus} 
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs sm:text-sm"
+                  size="sm"
                 >
-                  <ToggleLeft className="h-5 w-5" />
+                  <ToggleLeft className="h-4 w-4" />
                   Mark {status === "Active" ? "Inactive" : "Active"}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={toggleFinancialView}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs sm:text-sm"
+                  size="sm"
                 >
                   {showFinancialView ? (
                     <>
-                      <ArrowLeft className="h-5 w-5" />
+                      <ArrowLeft className="h-4 w-4" />
                       Back to Activities
                     </>
                   ) : (
                     <>
-                      <PieChartIcon className="h-5 w-5" />
-                  Financial Analytics
+                      <PieChartIcon className="h-4 w-4" />
+                      Financial Analytics
                     </>
                   )}
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <Leaf className="h-5 w-5 text-green-600" />
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+              <Card className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="bg-green-100 p-1.5 md:p-2 rounded-full">
+                    <Leaf className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold">{yieldData.daysRemain}</h3>
-                    <p className="text-sm text-gray-600">{yieldData.description}</p>
+                    <h3 className="text-lg md:text-2xl font-bold">{yieldData.daysRemain}</h3>
+                    <p className="text-xs md:text-sm text-gray-600">{yieldData.description}</p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-purple-100 p-2 rounded-full">
-                    <DollarSign className="h-5 w-5 text-purple-600" />
+              <Card className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="bg-purple-100 p-1.5 md:p-2 rounded-full">
+                    <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold">₹{yieldData.expense}</h3>
-                    <p className="text-sm text-gray-600">This Yield</p>
+                    <h3 className="text-lg md:text-2xl font-bold">₹{yieldData.expense}</h3>
+                    <p className="text-xs md:text-sm text-gray-600">This Yield</p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 p-2 rounded-full">
-                    <CheckSquare className="h-5 w-5 text-blue-600" />
+              <Card className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="bg-blue-100 p-1.5 md:p-2 rounded-full">
+                    <CheckSquare className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold">{yieldData.activities}</h3>
-                    <p className="text-sm text-gray-600">Activities</p>
+                    <h3 className="text-lg md:text-2xl font-bold">{yieldData.activities}</h3>
+                    <p className="text-xs md:text-sm text-gray-600">Activities</p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`${status === "Active" ? "bg-orange-100" : "bg-red-100"} p-2 rounded-full`}>
-                    <Activity className={`h-5 w-5 ${status === "Active" ? "text-orange-600" : "text-red-600"}`} />
+              <Card className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className={`${status === "Active" ? "bg-orange-100" : "bg-red-100"} p-1.5 md:p-2 rounded-full`}>
+                    <Activity className={`h-4 w-4 md:h-5 md:w-5 ${status === "Active" ? "text-orange-600" : "text-red-600"}`} />
                   </div>
                   <div>
-                    <h3 className={`text-2xl font-bold ${status === "Active" ? "" : "text-red-600"}`}>{status}</h3>
-                    <p className="text-sm text-gray-600">Yield Status</p>
+                    <h3 className={`text-lg md:text-2xl font-bold ${status === "Active" ? "" : "text-red-600"}`}>{status}</h3>
+                    <p className="text-xs md:text-sm text-gray-600">Yield Status</p>
                   </div>
                 </div>
               </Card>
@@ -1138,14 +1191,14 @@ const YieldDetails = () => {
 
             {/* Speech Recognition Status Display */}
             {recording && (
-              <Card className="p-4 mb-4 border-2 border-blue-400">
+              <Card className="p-3 md:p-4 mb-3 md:mb-4 border-2 border-blue-400">
                 <div>
-                  <h3 className="text-lg font-semibold flex items-center">
-                    <Mic className="h-5 w-5 text-red-600 mr-2 animate-pulse" />
+                  <h3 className="text-base md:text-lg font-semibold flex items-center">
+                    <Mic className="h-4 w-4 md:h-5 md:w-5 text-red-600 mr-2 animate-pulse" />
                     {processingVoice ? "Processing..." : `Recording... ${countdown}s`}
                   </h3>
                   {transcript && (
-                    <p className="mt-2 text-gray-700">{transcript}</p>
+                    <p className="mt-2 text-sm md:text-base text-gray-700">{transcript}</p>
                   )}
                 </div>
               </Card>
@@ -1155,20 +1208,20 @@ const YieldDetails = () => {
             {showFinancialView ? (
               // Financial Analytics View
               <div>
-                <Card className="p-6 mb-6">
-                  <h2 className="text-xl font-semibold mb-4">Expense Breakdown by Category</h2>
+                <Card className="p-4 md:p-6 mb-4 md:mb-6">
+                  <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Expense Breakdown by Category</h2>
                   
                   {getExpenseData().length > 0 ? (
-                    <div className="h-[300px] w-full">
+                    <div className="h-[200px] sm:h-[250px] md:h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={getExpenseData()}
                             cx="50%"
                             cy="50%"
-                            labelLine={true}
+                            labelLine={false}
                             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={100}
+                            outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"
                           >
@@ -1184,15 +1237,15 @@ const YieldDetails = () => {
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="flex justify-center items-center h-[300px] bg-gray-50 rounded-lg">
+                    <div className="flex justify-center items-center h-[200px] sm:h-[250px] md:h-[300px] bg-gray-50 rounded-lg">
                       <p className="text-gray-500">No expense data available to display</p>
                     </div>
                   )}
-                  
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                  <div className="mt-4 grid grid-cols-1 gap-4">
                     <div>
-                      <h4 className="font-medium mb-2">Summary</h4>
-                      <div className="space-y-1">
+                      <h4 className="font-medium mb-2 text-sm md:text-base">Summary</h4>
+                      <div className="text-xs md:text-sm space-y-1">
                         <div className="flex justify-between">
                           <span>Total Expenses:</span>
                           <span className="font-bold">₹{yieldData.expense}</span>
@@ -1203,104 +1256,92 @@ const YieldDetails = () => {
                         </div>
                       </div>
                     </div>
-                    
-                    <div>
-                      <h4 className="font-medium mb-2">Expense Details</h4>
-                      {getExpenseData().map((category, index) => (
-                        <div key={index} className="flex justify-between">
-                          <div className="flex items-center">
-                            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: category.color }}></div>
-                            <span>{category.name}:</span>
-                          </div>
-                          <span>₹{category.value}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </Card>
                 
                 {/* Cost-saving Suggestions */}
-                <Card className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <TrendingDown className="h-6 w-6 text-green-600" />
-                    <h2 className="text-xl font-semibold">AI Cost Reduction Suggestions</h2>
+                <Card className="p-4 md:p-6">
+                  <div className="flex items-center gap-2 mb-3 md:mb-4">
+                    <TrendingDown className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
+                    <h2 className="text-lg md:text-xl font-semibold">AI Cost Reduction Suggestions</h2>
                   </div>
                   
                   {loadingAiSuggestions ? (
-                    <div className="flex justify-center items-center py-16">
+                    <div className="flex justify-center items-center py-8 md:py-16">
                       <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="h-8 w-8 animate-spin text-agrigreen" />
-                        <p className="text-sm text-gray-500">Generating smart suggestions...</p>
+                        <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin text-agrigreen" />
+                        <p className="text-xs md:text-sm text-gray-500">Generating smart suggestions...</p>
                       </div>
                     </div>
                   ) : aiSuggestionsError ? (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <p className="text-red-600">{aiSuggestionsError}</p>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 md:p-4">
+                      <p className="text-sm md:text-base text-red-600">{aiSuggestionsError}</p>
                       <Button 
                         variant="outline" 
                         className="mt-2" 
                         onClick={fetchAISuggestions}
+                        size="sm"
                       >
                         Try Again
                       </Button>
                     </div>
                   ) : aiSuggestions.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                       {aiSuggestions.map((suggestion, index) => (
-                        <Card key={index} className="p-4 border border-gray-200">
-                          <div className="flex gap-3">
+                        <Card key={index} className="p-3 md:p-4 border border-gray-200">
+                          <div className="flex gap-2 md:gap-3">
                             <div className="mt-1">
-                              <div className="bg-gray-100 p-2 rounded-full">
+                              <div className="bg-gray-100 p-1.5 md:p-2 rounded-full">
                                 {suggestion.category === "General" ? (
-                                  <DollarSign className="h-5 w-5 text-green-600" />
+                                  <DollarSign className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                                 ) : suggestion.category === "Fertilizer" ? (
-                                  <Beaker className="h-5 w-5 text-purple-600" />
+                                  <Beaker className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
                                 ) : suggestion.category === "Pesticide" ? (
-                                  <Bug className="h-5 w-5 text-red-600" />
+                                  <Bug className="h-4 w-4 md:h-5 md:w-5 text-red-600" />
                                 ) : suggestion.category === "Irrigation" ? (
-                                  <Droplets className="h-5 w-5 text-blue-600" />
+                                  <Droplets className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
                                 ) : suggestion.category === "Cultivation" ? (
-                                  <Tractor className="h-5 w-5 text-orange-600" />
+                                  <Tractor className="h-4 w-4 md:h-5 md:w-5 text-orange-600" />
                                 ) : suggestion.category === "Sowing" ? (
-                                  <Sprout className="h-5 w-5 text-green-600" />
+                                  <Sprout className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                                 ) : suggestion.category === "Harvesting" ? (
-                                  <Wheat className="h-5 w-5 text-yellow-600" />
+                                  <Wheat className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
                                 ) : (
-                                  <Lightbulb className="h-5 w-5 text-yellow-500" />
+                                  <Lightbulb className="h-4 w-4 md:h-5 md:w-5 text-yellow-500" />
                                 )}
                               </div>
                             </div>
                             <div>
-                              <h3 className="font-medium text-lg flex items-center gap-2">
+                              <h3 className="font-medium text-base md:text-lg flex items-center gap-1 md:gap-2 flex-wrap">
                                 {suggestion.title}
                                 {suggestion.category && suggestion.category !== "General" && (
-                                  <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                                  <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded bg-blue-100 text-blue-800">
                                     {suggestion.category}
                                   </span>
                                 )}
                               </h3>
-                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">{suggestion.description}</p>
                             </div>
                           </div>
                         </Card>
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                       {getCostSavingSuggestions().map((suggestion, index) => (
-                        <Card key={index} className="p-4 border border-gray-200">
-                          <div className="flex gap-3">
+                        <Card key={index} className="p-3 md:p-4 border border-gray-200">
+                          <div className="flex gap-2 md:gap-3">
                             <div className="mt-1">
-                              <div className="bg-gray-100 p-2 rounded-full">
+                              <div className="bg-gray-100 p-1.5 md:p-2 rounded-full">
                                 {suggestion.icon}
                               </div>
                             </div>
                             <div>
-                              <h3 className="font-medium text-lg flex items-center gap-2">
+                              <h3 className="font-medium text-base md:text-lg flex items-center gap-1 md:gap-2">
                                 {suggestion.title}
-                                <Lightbulb className="h-4 w-4 text-yellow-500" />
+                                <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
                               </h3>
-                              <p className="text-sm text-gray-600 mt-1">{suggestion.description}</p>
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">{suggestion.description}</p>
                             </div>
                           </div>
                         </Card>
@@ -1308,10 +1349,11 @@ const YieldDetails = () => {
                       <div className="col-span-full mt-2">
                         <Button 
                           variant="outline" 
-                          className="w-full flex items-center justify-center gap-2" 
+                          className="w-full flex items-center justify-center gap-2 text-xs md:text-sm" 
                           onClick={fetchAISuggestions}
+                          size="sm"
                         >
-                          <Lightbulb className="h-4 w-4" />
+                          <Lightbulb className="h-3 w-3 md:h-4 md:w-4" />
                           Get AI-Powered Cost Reduction Suggestions
                         </Button>
                       </div>
@@ -1321,49 +1363,51 @@ const YieldDetails = () => {
               </div>
             ) : (
               // Regular Activities View
-            <Card className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Activities</h2>
+            <Card className="p-4 md:p-6">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 md:mb-6 gap-3 sm:gap-0">
+                <h2 className="text-lg md:text-xl font-semibold">Activities</h2>
                 {status === "Active" ? (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button 
                     onClick={() => {
                       setFormDataFromSpeech(null);
                       setShowActivityForm(true);
                     }} 
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 text-xs md:text-sm"
+                    size="sm"
                   >
                     <span>+</span> Add New Entry
                   </Button>
                   <Button 
                     onClick={startRecording}
                     disabled={recording || showActivityForm}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 text-xs md:text-sm"
+                    size="sm"
                   >
-                    <Mic className="h-5 w-5" />
+                    <Mic className="h-4 w-4 md:h-5 md:w-5" />
                     Voice Input
                   </Button>
                 </div>
                 ) : (
                   <div>
-                    <span className="text-amber-600 flex items-center gap-1">
-                      <ToggleLeft className="h-5 w-5" />
+                    <span className="text-amber-600 flex items-center gap-1 text-xs md:text-sm">
+                      <ToggleLeft className="h-4 w-4 md:h-5 md:w-5" />
                       This yield is inactive. No new activities can be added.
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 {yieldData.activityList.map((activity, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex items-start justify-between">
+                  <Card key={index} className="p-3 md:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="bg-gray-100 p-1.5 rounded">
+                        <div className="flex flex-wrap items-center gap-1 md:gap-2 mb-1 md:mb-2">
+                          <div className="bg-gray-100 p-1 md:p-1.5 rounded">
                             {getActivityIcon(activity.type)}
                           </div>
-                          <span className={`px-2 py-1 rounded text-sm ${
+                          <span className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded text-xs md:text-sm ${
                             activity.type === "Cultivation" ? "bg-orange-100 text-orange-800" :
                             activity.type === "Sowing" ? "bg-green-100 text-green-800" :
                             activity.type === "Fertilizer" ? "bg-purple-100 text-purple-800" :
@@ -1375,11 +1419,11 @@ const YieldDetails = () => {
                           }`}>
                             {activity.type}
                           </span>
-                          <span className="text-gray-500 text-sm">{activity.date}</span>
+                          <span className="text-gray-500 text-xs md:text-sm">{activity.date}</span>
                         </div>
-                        <h3 className="font-medium">{activity.name}</h3>
+                        <h3 className="font-medium text-sm md:text-base">{activity.name}</h3>
                         {activity.summary && (
-                          <p className="text-sm text-gray-600 mt-1">{activity.summary}</p>
+                          <p className="text-xs md:text-sm text-gray-600 mt-1">{activity.summary}</p>
                         )}
                         {activity.type === "Fertilizer" && activity.fertilizer && (
                           <div className="mt-2 text-sm text-gray-600">
@@ -1421,8 +1465,8 @@ const YieldDetails = () => {
                           </div>
                         )}
                       </div>
-                      <div className="text-right">
-                        <span className="text-lg font-semibold">₹{activity.expense}</span>
+                      <div className="text-right mt-2 sm:mt-0">
+                        <span className="text-base md:text-lg font-semibold">₹{activity.expense}</span>
                       </div>
                     </div>
                   </Card>
@@ -1447,8 +1491,15 @@ const YieldDetails = () => {
         </div>
       </div>
 
+      {/* Mobile Navigation Sidebar - Visible only on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-40">
+        <div className="flex justify-around py-2">
+          <DashboardSidebar isMobile={true} />
+        </div>
+      </div>
+
       {/* Floating language selector */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-16 md:bottom-6 right-4 md:right-6 z-50">
         <div className="bg-white p-2 rounded-lg shadow-lg">
           <LanguageSelector />
         </div>

@@ -279,261 +279,273 @@ const CropHealthMonitoring: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-agriBg">
-      {/* Sidebar */}
-      <div className="w-16 m-3 h-[calc(100vh-2rem)] fixed">
-        <DashboardSidebar />
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 ml-16 p-4">
-        <div className="w-full max-w-4xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Plant Disease Detection Dashboard</h1>
-            <p className="text-lg text-gray-600">Upload and analyze plant images for disease detection</p>
+    <div className="bg-agriBg min-h-screen w-full">
+      <div className="w-full h-full p-2 sm:p-4">
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4">
+          {/* Sidebar - Hidden on mobile, visible on md screens and up */}
+          <div className="hidden md:block md:col-span-1">
+            <DashboardSidebar />
           </div>
-          
-          {/* Status Indicators */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="font-medium">Model Loaded</p>
-                  <p className="text-gray-500 text-sm">Operational</p>
+
+          {/* Main Content */}
+          <div className="col-span-1 md:col-span-11">
+            <div className="w-full max-w-4xl mx-auto">
+              <div className="mb-4 md:mb-6">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">Plant Disease Detection</h1>
+                <p className="text-sm md:text-base text-gray-600">Upload and analyze plant images for disease detection</p>
+              </div>
+              
+              {/* Status Indicators */}
+              <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 md:p-6 mb-4 md:mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center mr-2 sm:mr-3">
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm sm:text-base">Model Loaded</p>
+                      <p className="text-gray-500 text-xs sm:text-sm">Operational</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center mr-2 sm:mr-3">
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm sm:text-base">API Connected</p>
+                      <p className="text-gray-500 text-xs sm:text-sm">Operational</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center mr-2 sm:mr-3">
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm sm:text-base">Processing Ready</p>
+                      <p className="text-gray-500 text-xs sm:text-sm">Operational</p>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="font-medium">API Connected</p>
-                  <p className="text-gray-500 text-sm">Operational</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="font-medium">Processing Ready</p>
-                  <p className="text-gray-500 text-sm">Operational</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <form onSubmit={handleSubmit}>
-            {/* File Upload Area */}
-            <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
-              {/* Crop Name Input */}
-              <div className="mb-6">
-                <label htmlFor="cropName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Crop Name
-                </label>
-                <input
-                  type="text"
-                  id="cropName"
-                  name="cropName"
-                  value={formData.cropName}
-                  onChange={handleChange}
-                  placeholder="Enter the crop name (e.g., Rice, Wheat, Corn)"
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                  required
-                />
-              </div>
-
-              {/* Image Upload */}
-              <div 
-                className="border-2 border-dashed border-gray-300 rounded-lg p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition"
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragEnter={handleDragEnter}
-                onClick={handleSelectFileClick}
-              >
-                {formData.imagePreview ? (
-                  <div className="text-center">
-                    <img 
-                      src={formData.imagePreview} 
-                      alt="Uploaded plant" 
-                      className="mx-auto max-h-64 max-w-full mb-4 rounded-md"
+              <form onSubmit={handleSubmit}>
+                {/* File Upload Area */}
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 md:p-8 mb-4 md:mb-6">
+                  {/* Crop Name Input */}
+                  <div className="mb-4 sm:mb-6">
+                    <label htmlFor="cropName" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                      Crop Name
+                    </label>
+                    <input
+                      type="text"
+                      id="cropName"
+                      name="cropName"
+                      value={formData.cropName}
+                      onChange={handleChange}
+                      placeholder="Enter the crop name (e.g., Rice, Wheat, Corn)"
+                      className="w-full p-2 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                      required
                     />
-                    <p className="text-sm text-gray-500">{formData.image?.name}</p>
                   </div>
-                ) : (
-                  <>
-                    <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
-                      <Upload className="w-8 h-8 text-green-500" />
-                    </div>
-                    <h3 className="text-xl font-medium text-gray-700 mb-2">Drag and drop your image here</h3>
-                    <p className="text-gray-500 mb-4">or click to select a file</p>
-                    <button 
-                      type="button"
-                      className="px-6 py-2 bg-green-500 text-white font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                    >
-                      Select File
-                    </button>
-                  </>
-                )}
-                <input
-                  ref={fileInputRef}
-                  id="file-upload"
-                  name="image"
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </div>
-              
-              {error && (
-                <div className="mt-4 bg-red-50 border-l-4 border-red-400 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertCircle className="h-5 w-5 text-red-400" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-red-700">{error}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {(formData.image || formData.cropName) && (
-                <div className="mt-6 flex justify-center space-x-4">
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="px-6 py-2 bg-gray-100 text-gray-700 font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+
+                  {/* Image Upload */}
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-8 md:p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition"
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onClick={handleSelectFileClick}
                   >
-                    Reset
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-green-500 text-white font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center"
-                    disabled={loading || !formData.image || !formData.cropName}
-                  >
-                    {loading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Analyzing...
-                      </>
+                    {formData.imagePreview ? (
+                      <div className="text-center">
+                        <img 
+                          src={formData.imagePreview} 
+                          alt="Uploaded plant" 
+                          className="mx-auto max-h-32 sm:max-h-48 md:max-h-64 max-w-full mb-2 sm:mb-4 rounded-md"
+                        />
+                        <p className="text-xs sm:text-sm text-gray-500">{formData.image?.name}</p>
+                      </div>
                     ) : (
                       <>
-                        Analyze Disease
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-50 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                          <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
+                        </div>
+                        <h3 className="text-base sm:text-xl font-medium text-gray-700 mb-1 sm:mb-2 text-center">Drag and drop your image here</h3>
+                        <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4 text-center">or click to select a file</p>
+                        <button 
+                          type="button"
+                          className="px-4 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm bg-green-500 text-white font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                        >
+                          Select File
+                        </button>
                       </>
                     )}
-                  </button>
-                </div>
-              )}
-            </div>
-          </form>
-          
-          {/* Results Section */}
-          {prediction && (
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-2xl font-bold text-agrigreen mb-4">Disease Detection Results</h2>
-              
-              <div className="bg-agrigreen-light/10 p-4 rounded-lg border border-agrigreen-light mb-6">
-                <div className="text-center mb-4">
-                  <span className="text-lg font-medium">Detected Disease:</span>
-                  <h3 className="text-3xl font-bold text-agrigreen">{prediction.diseaseName}</h3>
-                  <div className="mt-1 flex items-center justify-center gap-2">
-                    <span className="text-agrigreen-dark">Confidence Score: {prediction.confidence}%</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium" 
-                      style={{
-                        backgroundColor: 
-                          prediction.severity === 'Low' ? 'rgba(34, 197, 94, 0.2)' : 
-                          prediction.severity === 'Medium' ? 'rgba(234, 179, 8, 0.2)' : 
-                          'rgba(239, 68, 68, 0.2)',
-                        color: 
-                          prediction.severity === 'Low' ? 'rgb(22, 163, 74)' : 
-                          prediction.severity === 'Medium' ? 'rgb(202, 138, 4)' : 
-                          'rgb(185, 28, 28)'
-                      }}
-                    >
-                      {prediction.severity} Severity
-                    </span>
+                    <input
+                      ref={fileInputRef}
+                      id="file-upload"
+                      name="image"
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
                   </div>
+                  
+                  {error && (
+                    <div className="mt-3 sm:mt-4 bg-red-50 border-l-4 border-red-400 p-3 sm:p-4">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-xs sm:text-sm text-red-700">{error}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(formData.image || formData.cropName) && (
+                    <div className="mt-4 sm:mt-6 flex justify-center space-x-3 sm:space-x-4">
+                      <button
+                        type="button"
+                        onClick={resetForm}
+                        className="px-4 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-100 text-gray-700 font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 sm:px-6 py-1.5 sm:py-3 text-xs sm:text-sm bg-green-500 text-white font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center"
+                        disabled={loading || !formData.image || !formData.cropName}
+                      >
+                        {loading ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            Analyze Disease
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                
-                <div className="mt-4">
-                  <h4 className="font-medium text-agrigreen mb-2">Description</h4>
-                  <p className="text-gray-700">{prediction.description}</p>
-                </div>
-              </div>
+              </form>
               
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="text-xl font-medium text-agrigreen mb-3 flex items-center">
-                    <AlertCircle className="mr-2 h-5 w-5 text-agrigreen" />
-                    Causes
-                  </h3>
-                  <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                    {prediction.causes.map((cause, index) => (
-                      <li key={index}>{cause}</li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div>
-                  <h3 className="text-xl font-medium text-agrigreen mb-3 flex items-center">
-                    <XCircle className="mr-2 h-5 w-5 text-agrigreen" />
-                    Symptoms
-                  </h3>
-                  <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                    {prediction.symptoms.map((symptom, index) => (
-                      <li key={index}>{symptom}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-xl font-medium text-agrigreen mb-3 flex items-center">
-                  <CheckCircle className="mr-2 h-5 w-5 text-agrigreen" />
-                  Recommendations
-                </h3>
-                <div className="bg-white border border-agrigreen-light rounded-lg overflow-hidden">
-                  <ul className="divide-y divide-agrigreen-light">
-                    {prediction.recommendations.map((recommendation, index) => (
-                      <li key={index} className="p-4 flex items-start">
-                        <span className="flex-shrink-0 h-6 w-6 rounded-full bg-agrigreen-light/20 flex items-center justify-center text-agrigreen font-medium">
-                          {index + 1}
+              {/* Results Section */}
+              {prediction && (
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-agrigreen mb-3 sm:mb-4">Disease Detection Results</h2>
+                  
+                  <div className="bg-agrigreen-light/10 p-3 sm:p-4 rounded-lg border border-agrigreen-light mb-4 sm:mb-6">
+                    <div className="text-center mb-3 sm:mb-4">
+                      <span className="text-base sm:text-lg font-medium">Detected Disease:</span>
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-agrigreen">{prediction.diseaseName}</h3>
+                      <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                        <span className="text-sm sm:text-base text-agrigreen-dark">Confidence Score: {prediction.confidence}%</span>
+                        <span className="px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium" 
+                          style={{
+                            backgroundColor: 
+                              prediction.severity === 'Low' ? 'rgba(34, 197, 94, 0.2)' : 
+                              prediction.severity === 'Medium' ? 'rgba(234, 179, 8, 0.2)' : 
+                              'rgba(239, 68, 68, 0.2)',
+                            color: 
+                              prediction.severity === 'Low' ? 'rgb(22, 163, 74)' : 
+                              prediction.severity === 'Medium' ? 'rgb(202, 138, 4)' : 
+                              'rgb(185, 28, 28)'
+                          }}
+                        >
+                          {prediction.severity} Severity
                         </span>
-                        <span className="ml-3 text-gray-700">{recommendation}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {prediction.doses && (
-                <div className="mt-6">
-                  <h3 className="text-xl font-medium text-agrigreen mb-3 flex items-center">
-                    <ImageIcon className="mr-2 h-5 w-5 text-agrigreen" />
-                    Recommended Doses
-                  </h3>
-                  <div className="bg-agrigreen-light/10 p-4 rounded-lg border border-agrigreen-light">
-                    <p className="text-gray-700">{prediction.doses}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 sm:mt-4">
+                      <h4 className="font-medium text-sm sm:text-base text-agrigreen mb-1 sm:mb-2">Description</h4>
+                      <p className="text-xs sm:text-sm text-gray-700">{prediction.description}</p>
+                    </div>
                   </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 sm:mb-6">
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-medium text-agrigreen mb-2 sm:mb-3 flex items-center">
+                        <AlertCircle className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-agrigreen" />
+                        Causes
+                      </h3>
+                      <ul className="list-disc pl-4 sm:pl-5 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-gray-700">
+                        {prediction.causes.map((cause, index) => (
+                          <li key={index}>{cause}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-medium text-agrigreen mb-2 sm:mb-3 flex items-center">
+                        <XCircle className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-agrigreen" />
+                        Symptoms
+                      </h3>
+                      <ul className="list-disc pl-4 sm:pl-5 space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-gray-700">
+                        {prediction.symptoms.map((symptom, index) => (
+                          <li key={index}>{symptom}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-medium text-agrigreen mb-2 sm:mb-3 flex items-center">
+                      <CheckCircle className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-agrigreen" />
+                      Recommendations
+                    </h3>
+                    <div className="bg-white border border-agrigreen-light rounded-lg overflow-hidden">
+                      <ul className="divide-y divide-agrigreen-light">
+                        {prediction.recommendations.map((recommendation, index) => (
+                          <li key={index} className="p-2 sm:p-4 flex items-start">
+                            <span className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 rounded-full bg-agrigreen-light/20 flex items-center justify-center text-xs sm:text-sm text-agrigreen font-medium">
+                              {index + 1}
+                            </span>
+                            <span className="ml-2 sm:ml-3 text-xs sm:text-sm text-gray-700">{recommendation}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {prediction.doses && (
+                    <div className="mt-4 sm:mt-6">
+                      <h3 className="text-lg sm:text-xl font-medium text-agrigreen mb-2 sm:mb-3 flex items-center">
+                        <ImageIcon className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 text-agrigreen" />
+                        Recommended Doses
+                      </h3>
+                      <div className="bg-agrigreen-light/10 p-3 sm:p-4 rounded-lg border border-agrigreen-light">
+                        <p className="text-xs sm:text-sm text-gray-700">{prediction.doses}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+              
+              {/* Footer */}
+              <div className="mt-4 sm:mt-8 text-center text-agrigreen text-xs sm:text-sm">
+                <p>© 2025 CropSmart Advisor | Helping farmers make data-driven decisions</p>
+              </div>
             </div>
-          )}
-          
-          {/* Footer */}
-          <div className="mt-8 text-center text-agrigreen text-sm">
-            <p>© 2025 CropSmart Advisor | Helping farmers make data-driven decisions</p>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Navigation Sidebar - Visible only on mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-40">
+        <div className="flex justify-around py-2">
+          <DashboardSidebar isMobile={true} />
         </div>
       </div>
     </div>
