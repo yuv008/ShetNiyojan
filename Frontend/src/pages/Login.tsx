@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import LanguageSelector from "@/components/common/LanguageSelector";
+import logoImage from "@/assets/logo.png";
 
 const Login = () => {
   const [mobile, setMobile] = useState("");
@@ -50,6 +51,18 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-50 to-white p-4">
       <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <img 
+              src={logoImage} 
+              alt="ShetNiyojan Logo" 
+              className="w-10 h-10 mr-2"
+            />
+            <h1 className="text-3xl font-bold text-agrigreen">ShetNiyojan</h1>
+          </div>
+          <p className="text-muted-foreground">Sign in to your account</p>
+        </div>
+        
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="text-2xl">Welcome back</CardTitle>

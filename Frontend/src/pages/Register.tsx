@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import LanguageSelector from "@/components/common/LanguageSelector";
+import logoImage from "@/assets/logo.png";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -64,21 +65,11 @@ const Register = () => {
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-agrigreen mr-2"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M16 2C8.268 2 2 8.268 2 16C2 23.732 8.268 30 16 30C23.732 30 30 23.732 30 16C30 8.268 23.732 2 16 2ZM10 14C11.105 14 12 13.105 12 12C12 10.895 11.105 10 10 10C8.895 10 8 10.895 8 12C8 13.105 8.895 14 10 14ZM22 14C23.105 14 24 13.105 24 12C24 10.895 23.105 10 22 10C20.895 10 20 10.895 20 12C20 13.105 20.895 14 22 14ZM22 20C22 23.314 19.314 26 16 26C12.686 26 10 23.314 10 20H22Z"
-                fill="currentColor"
-              />
-            </svg>
+            <img 
+              src={logoImage} 
+              alt="ShetNiyojan Logo" 
+              className="w-10 h-10 mr-2"
+            />
             <h1 className="text-3xl font-bold text-agrigreen">ShetNiyojan</h1>
           </div>
           <p className="text-muted-foreground">Create your account</p>
