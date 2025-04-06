@@ -96,7 +96,7 @@ const CropHealthMonitoring: React.FC = () => {
     }
   };
   
-  const  handleSubmit = async(e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async(e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!formData.image) {
@@ -115,66 +115,141 @@ const CropHealthMonitoring: React.FC = () => {
     try {
       const data = new FormData();
       data.append('image', formData.image);
+      data.append('cropName', formData.cropName);
       
+      console.log("Sending data to API");
       const response = await axios.post("http://localhost:5000/api/plant-disease-analysis", data, {
         headers: {
-          'x-access-token': localStorage.getItem('userToken')
+          'Content-Type': 'multipart/form-data'
         }
       });
       
+      console.log("Full API response:", response.data);
+      
       if (response.data && response.data.analysis) {
         try {
-          // Parse the JSON response
+          // Get the raw analysis string
           let analysisString = response.data.analysis;
+          console.log("Raw analysis string:", analysisString);
           
-          // Remove markdown code block delimiters if present
+          // Clean the analysis string (remove markdown code block and escape characters)
           if (typeof analysisString === 'string') {
-            // Remove leading and trailing backticks and whitespace
-            analysisString = analysisString.replace(/^```[\s\S]*?\n/, '').replace(/\n```$/, '').trim();
+            // Remove markdown code block delimiters and escape characters
+            analysisString = analysisString
+              .replace(/^```[\s\S]*?/, '')
+              .replace(/```$/, '')
+              .replace(/\\n/g, '\n')
+              .replace(/\\"/g, '"')
+              .trim();
           }
           
-          const analysisData = typeof analysisString === 'string' 
-            ? JSON.parse(analysisString) 
-            : analysisString;
+          console.log("Cleaned analysis string:", analysisString);
           
-          console.log("Analysis data:", analysisData);
+          // Parse the JSON data
+          let analysisData;
+          try {
+            // First try direct JSON parsing
+            analysisData = JSON.parse(analysisString);
+          } catch (parseError) {
+            console.error("Error in first parse attempt:", parseError);
+            
+            // Try additional cleaning if first attempt fails
+            const cleanedString = analysisString
+              .replace(/\\n/g, '')
+              .replace(/\\"/g, '"')
+              .replace(/^```json/, '')
+              .replace(/```$/, '')
+              .trim();
+              
+            try {
+              analysisData = JSON.parse(cleanedString);
+            } catch (secondParseError) {
+              console.error("Error in second parse attempt:", secondParseError);
+              
+              // Last resort - try to extract the JSON using regex
+              const jsonMatch = analysisString.match(/{[\s\S]*}/);
+              if (jsonMatch) {
+                try {
+                  analysisData = JSON.parse(jsonMatch[0]);
+                } catch (e) {
+                  throw new Error("Failed to parse analysis data after multiple attempts");
+                }
+              } else {
+                throw new Error("Could not extract valid JSON from response");
+              }
+            }
+          }
           
-          // Process causes, symptoms, and recommendations (convert from string to array if needed)
+          console.log("Successfully parsed analysis data:", analysisData);
+          
+          // Process text fields to arrays if needed
           const processStringToArray = (input: string | string[]): string[] => {
             if (Array.isArray(input)) return input;
-            return input.split(/\.\s*/).filter(item => item.trim().length > 0);
+            if (!input) return ["Information not available"];
+            
+            // Split by periods, newlines, or bullet points
+            return input
+              .split(/\.\s*|\n+|•/)
+              .map(item => item.trim())
+              .filter(item => item.length > 0);
           };
           
-          const causes = processStringToArray(analysisData.causes);
-          const symptoms = processStringToArray(analysisData.symptoms);
-          const recommendations = processStringToArray(analysisData.recommendations);
+          // Get confidence from response
+          const confidenceValue = response.data.confidence || 75;
           
-          // Set default values for fields not in the response
-          const confidenceValue = 85; // Default confidence value
-          const severity: 'Low' | 'Medium' | 'High' = 'Medium'; // Default severity
+          // Determine severity based on confidence
+          let severity: 'Low' | 'Medium' | 'High';
+          if (confidenceValue > 80) severity = 'High';
+          else if (confidenceValue > 60) severity = 'Medium';
+          else severity = 'Low';
           
+          // Set the prediction with parsed data
           setPrediction({
-            diseaseName: analysisData.diseaseName,
+            diseaseName: analysisData.diseaseName || response.data.predictedDisease,
             confidence: confidenceValue,
             severity: severity,
-            description: analysisData.description,
-            causes: causes,
-            symptoms: symptoms,
-            recommendations: recommendations,
-            doses: analysisData.doses
+            description: analysisData.description || "No description available",
+            causes: processStringToArray(analysisData.causes),
+            symptoms: processStringToArray(analysisData.symptoms),
+            recommendations: processStringToArray(analysisData.recommendations),
+            doses: analysisData.doses || "No dosage information available"
           });
           
-          // Add "doses" section to the UI if available
-          if (analysisData.doses) {
-            // This will be handled in the UI update
-          }
-          
         } catch (parseError) {
-          console.error('Error parsing analysis data:', parseError);
-          setError('Failed to parse analysis data');
+          console.error('Error processing analysis data:', parseError);
+          
+          // Fallback to using the predictedDisease directly
+          const diseaseName = response.data.predictedDisease;
+          const confidence = response.data.confidence || 75;
+          
+          setPrediction({
+            diseaseName: diseaseName,
+            confidence: confidence,
+            severity: 'Medium',
+            description: "Analysis data could not be processed. Please try again.",
+            causes: ["Unknown - analysis failed"],
+            symptoms: ["See image for visual symptoms"],
+            recommendations: ["Consult with a local agricultural expert for this specific condition"],
+            doses: "Not available due to analysis error"
+          });
         }
+      } else if (response.data && response.data.predictedDisease) {
+        // Fallback if only predictedDisease is available
+        const diseaseName = response.data.predictedDisease;
+        const confidence = response.data.confidence || 75;
+        
+        setPrediction({
+          diseaseName: diseaseName,
+          confidence: confidence,
+          severity: 'Medium',
+          description: `Plant disease identified as ${diseaseName}.`,
+          causes: ["Environmental factors", "Pathogens", "Nutrient deficiencies"],
+          symptoms: ["Discoloration", "Spots", "Lesions", "Growth abnormalities"],
+          recommendations: ["Consult with a local agricultural expert", "Consider appropriate fungicides or insecticides", "Ensure proper plant nutrition"],
+          doses: "Not available without further analysis."
+        });
       } else {
-        setError('No analysis data received from server');
+        setError('No valid analysis data received from server');
       }
     } catch (error) {
       console.error('Error analyzing image:', error);

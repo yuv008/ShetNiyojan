@@ -10,7 +10,7 @@ model = AutoModelForImageClassification.from_pretrained("linkanjarad/mobilenet_v
 def predict_disease(image_path: str):
     image = Image.open(image_path).convert("RGB")
 
-    inputs = processor(images=image, return_tensors="pt")
+    inputs = processor(images=image, return_tensors="pt", padding=True)
     with torch.no_grad():
         outputs = model(**inputs)
 

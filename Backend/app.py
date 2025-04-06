@@ -26,6 +26,7 @@ from collections import defaultdict
 from haversine import haversine
 import json
 import google.generativeai as genai
+import werkzeug.utils
 
 base_dir  = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = "uploads"
@@ -157,7 +158,7 @@ def profile(current_user):
         'mobileno': current_user['mobileno']
     })
 
-# ------------------ Plant Disease Analyzer ------------------
+# ------------------ plant-disease-analysis ------------------
 @app.route('/api/plant-disease-analysis', methods=['POST'])
 def plant_disease_analysis():
     if "image" not in request.files:
@@ -227,8 +228,6 @@ def plant_disease_analysis():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 # ------------------ Crop Recommendation ------------------
 @app.route('/api/crop-recommendation', methods=['POST'])
 @token_required
