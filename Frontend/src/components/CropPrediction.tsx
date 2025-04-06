@@ -11,24 +11,24 @@ interface FormDataType {
   rainfall: number;
   temperature: number;
   humidity: number;
-  soilPH: number;
-  soilNitrogen: number;
-  soilPhosphorus: number;
-  soilPotassium: number;
+  ph: number;
+  N: number;
+  P: number;
+  K: number;
   landArea: number;
 }
 
 interface CropInfo {
-  name: string;
-  score: number;
-  waterRequirement: string;
+  crop: string;
   growthPeriod: string;
+  suitabilityScore: string;
+  waterRequirement: string;
 }
 
 interface PredictionResult {
-  bestCrop: string;
-  confidence: number;
-  alternativeCrops: CropInfo[];
+  bestRecommendedCrop: string;
+  additionalCrops: CropInfo[];
+  alternativeCrops: string[];
   environmentalSuitability: string;
   estimatedYield: string;
   recommendations: string;
@@ -41,10 +41,10 @@ const CropPrediction: React.FC = () => {
     rainfall: 100,
     temperature: 25,
     humidity: 60,
-    soilPH: 7.0,
-    soilNitrogen: 40,
-    soilPhosphorus: 40,
-    soilPotassium: 40,
+    ph: 7.0,
+    N: 40,
+    P: 40,
+    K: 40,
     landArea: 1,
   });
   
@@ -59,7 +59,7 @@ const CropPrediction: React.FC = () => {
     
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'location' ? value : parseFloat(value) || value
+      [name]: name === 'location' || name === 'soilType' ? value : parseFloat(value) || value
     }));
   };
   
@@ -68,20 +68,19 @@ const CropPrediction: React.FC = () => {
     setLoading(true);
     
     try {
-      // Convert frontend form data to match backend API requirements
       const apiData = {
-        N: formData.soilNitrogen,
-        P: formData.soilPhosphorus,
-        K: formData.soilPotassium,
+        N: formData.N,
+        P: formData.P,
+        K: formData.K,
         temperature: formData.temperature,
         humidity: formData.humidity,
-        ph: formData.soilPH,
-        rainfall: formData.rainfall
+        ph: formData.ph,
+        rainfall: formData.rainfall,
+        location: formData.location
       };
       
       console.log("Sending data to API:", apiData);
       
-      // Call the backend API
       const response = await fetch("http://localhost:5000/api/crop-recommendation", {
         method: "POST",
         headers: {
@@ -98,175 +97,18 @@ const CropPrediction: React.FC = () => {
         throw new Error(result.error || "Failed to get crop recommendation");
       }
       
-      // Get the recommended crop from the response
-      const recommendedCrop = result.recommended_crop;
-      
-      // Sample crop info based on the recommendation
-      // In a real application, this would come from a database or API
-      const cropInfoMap: Record<string, CropInfo> = {
-        rice: { 
-          name: 'Rice', 
-          score: 95, 
-          waterRequirement: 'High', 
-          growthPeriod: '3-4 months' 
-        },
-        wheat: { 
-          name: 'Wheat', 
-          score: 90, 
-          waterRequirement: 'Medium', 
-          growthPeriod: '4-5 months' 
-        },
-        maize: { 
-          name: 'Maize', 
-          score: 88, 
-          waterRequirement: 'Medium', 
-          growthPeriod: '3-4 months' 
-        },
-        chickpea: { 
-          name: 'Chickpea', 
-          score: 85, 
-          waterRequirement: 'Low', 
-          growthPeriod: '3-4 months' 
-        },
-        kidneybeans: { 
-          name: 'Kidney Beans', 
-          score: 84, 
-          waterRequirement: 'Medium', 
-          growthPeriod: '2-3 months' 
-        },
-        pigeonpeas: { 
-          name: 'Pigeon Peas', 
-          score: 82, 
-          waterRequirement: 'Low', 
-          growthPeriod: '4-5 months' 
-        },
-        mothbeans: { 
-          name: 'Moth Beans', 
-          score: 80, 
-          waterRequirement: 'Low', 
-          growthPeriod: '2-3 months' 
-        },
-        mungbean: { 
-          name: 'Mung Bean', 
-          score: 83, 
-          waterRequirement: 'Low', 
-          growthPeriod: '2-3 months' 
-        },
-        blackgram: { 
-          name: 'Black Gram', 
-          score: 81, 
-          waterRequirement: 'Medium', 
-          growthPeriod: '3-4 months' 
-        },
-        lentil: { 
-          name: 'Lentil', 
-          score: 82, 
-          waterRequirement: 'Low', 
-          growthPeriod: '3-4 months' 
-        },
-        pomegranate: { 
-          name: 'Pomegranate', 
-          score: 87, 
-          waterRequirement: 'Medium', 
-          growthPeriod: 'Perennial' 
-        },
-        banana: { 
-          name: 'Banana', 
-          score: 89, 
-          waterRequirement: 'High', 
-          growthPeriod: '10-12 months' 
-        },
-        mango: { 
-          name: 'Mango', 
-          score: 86, 
-          waterRequirement: 'Medium', 
-          growthPeriod: 'Perennial' 
-        },
-        grapes: { 
-          name: 'Grapes', 
-          score: 85, 
-          waterRequirement: 'Medium', 
-          growthPeriod: 'Perennial' 
-        },
-        watermelon: { 
-          name: 'Watermelon', 
-          score: 84, 
-          waterRequirement: 'High', 
-          growthPeriod: '3-4 months' 
-        },
-        muskmelon: { 
-          name: 'Muskmelon', 
-          score: 83, 
-          waterRequirement: 'Medium', 
-          growthPeriod: '3-4 months' 
-        },
-        apple: { 
-          name: 'Apple', 
-          score: 88, 
-          waterRequirement: 'Medium', 
-          growthPeriod: 'Perennial' 
-        },
-        orange: { 
-          name: 'Orange', 
-          score: 87, 
-          waterRequirement: 'Medium', 
-          growthPeriod: 'Perennial' 
-        },
-        papaya: { 
-          name: 'Papaya', 
-          score: 85, 
-          waterRequirement: 'Medium', 
-          growthPeriod: '8-10 months' 
-        },
-        coconut: { 
-          name: 'Coconut', 
-          score: 89, 
-          waterRequirement: 'High', 
-          growthPeriod: 'Perennial' 
-        },
-        cotton: { 
-          name: 'Cotton', 
-          score: 82, 
-          waterRequirement: 'Medium', 
-          growthPeriod: '5-6 months' 
-        },
-        jute: { 
-          name: 'Jute', 
-          score: 81, 
-          waterRequirement: 'High', 
-          growthPeriod: '4-5 months' 
-        },
-        coffee: { 
-          name: 'Coffee', 
-          score: 86, 
-          waterRequirement: 'Medium', 
-          growthPeriod: 'Perennial' 
-        }
-      };
-      
-      // Get crop info for the recommended crop
-      const cropName = recommendedCrop.toLowerCase().replace(/\s+/g, '');
-      const cropInfo = cropInfoMap[cropName] || {
-        name: recommendedCrop,
-        score: 90,
-        waterRequirement: 'Medium',
-        growthPeriod: '3-4 months'
-      };
-      
-      // Get alternative crops (top 5 other crops)
-      const alternativeCrops = Object.values(cropInfoMap)
-        .filter(crop => crop.name.toLowerCase() !== cropName)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5);
-      
-      // Create prediction result
       const predictionResult: PredictionResult = {
-        bestCrop: cropInfo.name,
-        confidence: cropInfo.score,
-        alternativeCrops,
-        environmentalSuitability: `Based on the provided soil and climate conditions, ${cropInfo.name} is well-suited for your land. It thrives in ${formData.soilType} soil with pH around ${formData.soilPH} and the temperature range you specified.`,
-        estimatedYield: `With proper management, you can expect good to excellent yields. ${cropInfo.name} typically requires ${cropInfo.waterRequirement.toLowerCase()} water input.`,
-        recommendations: `Consider planting ${cropInfo.name} as your primary crop. Ensure proper irrigation based on its ${cropInfo.waterRequirement.toLowerCase()} water requirement. The typical growth period is ${cropInfo.growthPeriod}, so plan your farming calendar accordingly.`
+        bestRecommendedCrop: result.bestRecommendedCrop,
+        additionalCrops: result.additionalCrops.map((crop: any) => ({
+          crop: crop.crop,
+          growthPeriod: crop.growthPeriod,
+          suitabilityScore: crop.suitabilityScore,
+          waterRequirement: crop.waterRequirement
+        })),
+        alternativeCrops: result.alternativeCrops,
+        environmentalSuitability: result.environmentalSuitability,
+        estimatedYield: result.estimatedYield,
+        recommendations: result.recommendations
       };
       
       setPrediction(predictionResult);
@@ -285,10 +127,10 @@ const CropPrediction: React.FC = () => {
       rainfall: 100,
       temperature: 25,
       humidity: 60,
-      soilPH: 7.0,
-      soilNitrogen: 40,
-      soilPhosphorus: 40,
-      soilPotassium: 40,
+      ph: 7.0,
+      N: 40,
+      P: 40,
+      K: 40,
       landArea: 1,
     });
     setPrediction(null);
@@ -419,57 +261,57 @@ const CropPrediction: React.FC = () => {
                           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Soil pH</label>
                           <input
                             type="range"
-                            name="soilPH"
+                            name="ph"
                             min="3"
                             max="10"
                             step="0.1"
-                            value={formData.soilPH}
+                            value={formData.ph}
                             onChange={handleChange}
                             className="w-full h-2 bg-agrigreen-light/20 rounded-lg appearance-none cursor-pointer accent-agrigreen"
                           />
-                          <div className="text-center text-xs sm:text-sm mt-1">{formData.soilPH}</div>
+                          <div className="text-center text-xs sm:text-sm mt-1">{formData.ph}</div>
                         </div>
                         
                         <div>
                           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Nitrogen (kg/ha)</label>
                           <input
                             type="range"
-                            name="soilNitrogen"
+                            name="N"
                             min="0"
                             max="100"
-                            value={formData.soilNitrogen}
+                            value={formData.N}
                             onChange={handleChange}
                             className="w-full h-2 bg-agrigreen-light/20 rounded-lg appearance-none cursor-pointer accent-agrigreen"
                           />
-                          <div className="text-center text-xs sm:text-sm mt-1">{formData.soilNitrogen}</div>
+                          <div className="text-center text-xs sm:text-sm mt-1">{formData.N}</div>
                         </div>
                         
                         <div>
                           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phosphorus (kg/ha)</label>
                           <input
                             type="range"
-                            name="soilPhosphorus"
+                            name="P"
                             min="0"
                             max="100"
-                            value={formData.soilPhosphorus}
+                            value={formData.P}
                             onChange={handleChange}
                             className="w-full h-2 bg-agrigreen-light/20 rounded-lg appearance-none cursor-pointer accent-agrigreen"
                           />
-                          <div className="text-center text-xs sm:text-sm mt-1">{formData.soilPhosphorus}</div>
+                          <div className="text-center text-xs sm:text-sm mt-1">{formData.P}</div>
                         </div>
                         
                         <div>
                           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Potassium (kg/ha)</label>
                           <input
                             type="range"
-                            name="soilPotassium"
+                            name="K"
                             min="0"
                             max="100"
-                            value={formData.soilPotassium}
+                            value={formData.K}
                             onChange={handleChange}
                             className="w-full h-2 bg-agrigreen-light/20 rounded-lg appearance-none cursor-pointer accent-agrigreen"
                           />
-                          <div className="text-center text-xs sm:text-sm mt-1">{formData.soilPotassium}</div>
+                          <div className="text-center text-xs sm:text-sm mt-1">{formData.K}</div>
                         </div>
                       </div>
                     </div>
@@ -501,8 +343,7 @@ const CropPrediction: React.FC = () => {
                     <div className="bg-agrigreen-light/10 p-3 sm:p-4 rounded-lg border border-agrigreen-light mb-5 sm:mb-6">
                       <div className="text-center mb-3 sm:mb-4">
                         <span className="text-base sm:text-lg font-medium">Best Recommended Crop:</span>
-                        <h3 className="text-2xl sm:text-3xl font-bold text-agrigreen">{prediction.bestCrop}</h3>
-                        <div className="mt-1 text-sm sm:text-base text-agrigreen-dark">Confidence Score: {prediction.confidence}%</div>
+                        <h3 className="text-2xl sm:text-3xl font-bold text-agrigreen">{prediction.bestRecommendedCrop}</h3>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
@@ -523,7 +364,7 @@ const CropPrediction: React.FC = () => {
                     </div>
                     
                     <div>
-                      <h3 className="text-lg sm:text-xl font-medium text-agrigreen mb-2 sm:mb-3">Alternative Crops</h3>
+                      <h3 className="text-lg sm:text-xl font-medium text-agrigreen mb-2 sm:mb-3">Additional Crop Options</h3>
                       <div className="overflow-x-auto -mx-3 sm:mx-0">
                         <div className="inline-block min-w-full sm:px-0 px-3">
                           <table className="min-w-full bg-white border border-agrigreen-light text-xs sm:text-sm">
@@ -536,10 +377,10 @@ const CropPrediction: React.FC = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {prediction.alternativeCrops.map((crop, index) => (
+                              {prediction.additionalCrops.map((crop, index) => (
                                 <tr key={index} className={index % 2 === 0 ? 'bg-agrigreen-light/5' : 'bg-white'}>
-                                  <td className="py-1.5 sm:py-2 px-2 sm:px-4 border-b">{crop.name}</td>
-                                  <td className="py-1.5 sm:py-2 px-2 sm:px-4 border-b">{crop.score}%</td>
+                                  <td className="py-1.5 sm:py-2 px-2 sm:px-4 border-b">{crop.crop}</td>
+                                  <td className="py-1.5 sm:py-2 px-2 sm:px-4 border-b">{crop.suitabilityScore}%</td>
                                   <td className="py-1.5 sm:py-2 px-2 sm:px-4 border-b">{crop.waterRequirement}</td>
                                   <td className="py-1.5 sm:py-2 px-2 sm:px-4 border-b">{crop.growthPeriod}</td>
                                 </tr>
@@ -547,6 +388,20 @@ const CropPrediction: React.FC = () => {
                             </tbody>
                           </table>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <h3 className="text-lg sm:text-xl font-medium text-agrigreen mb-2 sm:mb-3">Alternative Crops</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {prediction.alternativeCrops.map((crop, index) => (
+                          <span 
+                            key={index}
+                            className="px-3 py-1 bg-agrigreen-light/10 text-agrigreen rounded-full text-xs sm:text-sm"
+                          >
+                            {crop}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
