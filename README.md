@@ -58,9 +58,6 @@ The project follows a client-server architecture:
 - **Responsive Design**: Optimized for all devices, from smartphones to desktops
 - **Real-time Activity Tracking**: Keep track of all farm activities in one place
 
-## Screenshots
-
-(Screenshots would be placed here)
 
 ## Getting Started
 
